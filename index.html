@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a365d">
+<title>CVR 525 - Residential Data Input</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2a5298;
+  --accent: #e53e3e;
+  --bg: #f7fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1a202c;
+  --text-muted: #718096;
+  --required-bg: #fff5f5;
+  --required-border: #fed7d7;
+  --success: #38a169;
+  --mic-active: #e53e3e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  padding-bottom: 80px;
+}
+.app-header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.app-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.app-header .subtitle {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.header-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.header-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.header-btn:active { background: rgba(255,255,255,0.25); }
+.header-btn.danger { background: rgba(229,62,62,0.3); border-color: rgba(229,62,62,0.5); }
+.header-btn.success { background: rgba(56,161,105,0.3); border-color: rgba(56,161,105,0.5); }
+
+/* Transcript Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal h2 { font-size: 18px; margin-bottom: 12px; }
+.modal textarea {
+  width: 100%;
+  min-height: 200px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+.modal .btn-row { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+.modal .btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.modal .btn-primary { background: var(--primary); color: white; }
+.modal .btn-cancel { background: var(--border); color: var(--text); }
+.modal .parse-instructions {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* Progress bar */
+.progress-bar {
+  background: rgba(255,255,255,0.2);
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.progress-fill {
+  background: #48bb78;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+  width: 0%;
+}
+.progress-text {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+/* Sections */
+.section {
+  margin: 12px;
+  background: var(--card);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  user-select: none;
+}
+.section-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-header .page-badge {
+  background: rgba(255,255,255,0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+}
+.section-header .chevron {
+  transition: transform 0.2s;
+  font-size: 18px;
+}
+.section.collapsed .section-header .chevron { transform: rotate(-90deg); }
+.section-body {
+  padding: 16px;
+  transition: max-height 0.3s;
+}
+.section.collapsed .section-body { display: none; }
+
+/* Field groups */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (min-width: 600px) {
+  .field-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .field-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .field-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.field label.required::after {
+  content: ' *';
+  color: var(--accent);
+}
+.field .input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="date"],
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.field.required input,
+.field.required select,
+.field.required textarea {
+  background: var(--required-bg);
+  border-color: var(--required-border);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(42,82,152,0.1);
+}
+.field textarea { min-height: 80px; resize: vertical; }
+
+/* Mic button */
+.mic-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mic-btn:active { background: #f0f0f0; }
+.mic-btn.recording {
+  color: white;
+  background: var(--mic-active);
+  border-color: var(--mic-active);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229,62,62,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(229,62,62,0); }
+}
+.mic-svg { width: 18px; height: 18px; }
+
+/* Checkbox groups */
+.checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+}
+.checkbox-group.narrow {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 13px;
+}
+.checkbox-item:active { background: #edf2f7; }
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* Radio groups */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.radio-item:has(input:checked) {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+.radio-item input[type="radio"] { display: none; }
+
+/* Room info table */
+.room-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.room-table th {
+  background: #edf2f7;
+  padding: 8px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.room-table td {
+  padding: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.room-table td .room-label {
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.room-table input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.room-table input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+}
+
+/* Sub-section divider */
+.sub-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--primary);
+  padding: 8px 0;
+  margin-top: 8px;
+  border-bottom: 2px solid var(--primary);
+  letter-spacing: 0.5px;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a202c;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 300;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* Bottom nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+.bottom-nav button {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 4px 12px;
+}
+.bottom-nav button svg { width: 22px; height: 22px; }
+.bottom-nav button:active { color: var(--primary); }
+
+/* Saved indicator */
+.save-indicator {
+  font-size: 11px;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #48bb78;
+}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>CVR 525 Residential Data Input</h1>
+  <div class="subtitle">eXp Realty - Central Virginia Regional MLS</div>
+  <div class="header-actions">
+    <button class="header-btn" onclick="openTranscript()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      Import Transcript
+    </button>
+    <button class="header-btn success" onclick="exportJSON()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export JSON
+    </button>
+    <button class="header-btn danger" onclick="clearForm()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Clear
+    </button>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text"><span id="progressText">0</span>% complete &middot; <span class="save-indicator"><span class="save-dot"></span> Auto-saved</span></div>
+</div>
+
+<!-- Transcript Modal -->
+<div class="modal-overlay" id="transcriptModal">
+  <div class="modal">
+    <h2>Import Voice Transcript</h2>
+    <p class="parse-instructions">
+      Paste your PLAUD or voice recording transcript below. Use a natural format like:<br>
+      <em>"County is Henrico, owner first name John, last name Smith, house number 1234, street name Oak Avenue, list price 450000, 3 bedrooms, 2 full baths, ranch style, year built 1995..."</em><br><br>
+      The parser will match keywords to form fields automatically.
+    </p>
+    <textarea id="transcriptText" placeholder="Paste your transcript here..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeTranscript()">Cancel</button>
+      <button class="btn btn-primary" onclick="parseTranscript()">Parse & Fill</button>
+    </div>
+  </div>
+</div>
+
+<div id="formContainer">
+
+<!-- ===================== SECTION 1: TAX RECORD / STATUS (Page 1) ===================== -->
+<div class="section" id="sec-tax">
+  <div class="section-header" onclick="toggleSection('sec-tax')">
+    <h2><span class="page-badge">P1</span> Tax Record & Status</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">County</label>
+        <div class="input-wrap">
+          <input type="text" name="county" placeholder="Select County/City">
+          <button class="mic-btn" onclick="startMic(this,'county')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>PID (Parcel ID #)</label>
+        <div class="input-wrap">
+          <input type="text" name="pid" placeholder="Parcel ID">
+          <button class="mic-btn" onclick="startMic(this,'pid')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field">
+        <label>Owner First Name</label>
+        <div class="input-wrap">
+          <input type="text" name="ownerFirstName" placeholder="First Name">
+          <button class="mic-btn" onclick="startMic(this,'ownerFirstName')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Owner Last Name</label>
+        <div class="input-wrap">
+          <input type="text" name="ownerLastName" placeholder="Last Name">
+          <button class="mic-btn" onclick="startMic(this,'ownerLastName')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field">
+        <label>House Number</label>
+        <div class="input-wrap">
+          <input type="text" name="houseNumber" placeholder="#">
+          <button class="mic-btn" onclick="startMic(this,'houseNumber')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Street Name</label>
+        <div class="input-wrap">
+          <input type="text" name="streetNameTax" placeholder="Street Name">
+          <button class="mic-btn" onclick="startMic(this,'streetNameTax')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Unit Number</label>
+        <div class="input-wrap">
+          <input type="text" name="unitNumberTax" placeholder="Unit #">
+          <button class="mic-btn" onclick="startMic(this,'unitNumberTax')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-header">Status Information</div>
+    <div class="field-row">
+      <div class="field required">
+        <label class="required">Status</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="status" value="Incomplete"> Incomplete</label>
+          <label class="radio-item"><input type="radio" name="status" value="Active"> Active</label>
+          <label class="radio-item"><input type="radio" name="status" value="Coming Soon"> Coming Soon</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-header">Listing Information</div>
+    <div class="field-row cols-2">
+      <div class="field">
+        <label>County / City</label>
+        <div class="input-wrap">
+          <input type="text" name="countyCity" placeholder="County/City">
+          <button class="mic-btn" onclick="startMic(this,'countyCity')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Delayed Show (Y/N)</label>
+        <select name="delayedShow"><option value="">--</option><option>Y</option><option>N</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">List Price</label>
+        <div class="input-wrap">
+          <input type="text" name="listPrice" placeholder="$" inputmode="numeric">
+          <button class="mic-btn" onclick="startMic(this,'listPrice')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field required">
+        <label class="required">List Date</label>
+        <input type="date" name="listDate">
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field">
+        <label>No Show Until</label>
+        <input type="date" name="noShowUntil">
+      </div>
+      <div class="field">
+        <label>Expected On Market Date</label>
+        <input type="date" name="expectedOnMarketDate">
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">Type</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="propertyType" value="Single Family"> Single Family</label>
+          <label class="radio-item"><input type="radio" name="propertyType" value="Townhouse"> Townhouse</label>
+          <label class="radio-item"><input type="radio" name="propertyType" value="Condo"> Condo</label>
+          <label class="radio-item"><input type="radio" name="propertyType" value="Cooperative"> Cooperative</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Attached Y/N</label>
+        <select name="attached"><option value="">--</option><option>Yes</option><option>No</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field">
+        <label>PID (Listing)</label>
+        <input type="text" name="pidListing" placeholder="Parcel ID">
+      </div>
+      <div class="field">
+        <label>Area</label>
+        <input type="text" name="area" placeholder="Area code">
+      </div>
+      <div class="field">
+        <label>Expire Date</label>
+        <input type="date" name="expireDate">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 2: LOCATION (Page 2) ===================== -->
+<div class="section collapsed" id="sec-location">
+  <div class="section-header" onclick="toggleSection('sec-location')">
+    <h2><span class="page-badge">P2</span> Location Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row cols-4">
+      <div class="field">
+        <label>Street #</label>
+        <div class="input-wrap">
+          <input type="text" name="streetNum" placeholder="#">
+          <button class="mic-btn" onclick="startMic(this,'streetNum')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Street Direction</label>
+        <select name="streetDirection"><option value="">--</option><option>N</option><option>S</option><option>E</option><option>W</option><option>NE</option><option>NW</option><option>SE</option><option>SW</option></select>
+      </div>
+      <div class="field">
+        <label>Street Name</label>
+        <div class="input-wrap">
+          <input type="text" name="streetName" placeholder="Street Name">
+          <button class="mic-btn" onclick="startMic(this,'streetName')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Street Suffix</label>
+        <div class="input-wrap">
+          <input type="text" name="streetSuffix" placeholder="St, Ave, Dr...">
+          <button class="mic-btn" onclick="startMic(this,'streetSuffix')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-4">
+      <div class="field"><label>Unit #</label><input type="text" name="unitNum" placeholder="Unit"></div>
+      <div class="field"><label>Unit/Level</label><input type="text" name="unitLevel"></div>
+      <div class="field required"><label class="required">Zip Code</label><input type="text" name="zipCode" inputmode="numeric" maxlength="5"></div>
+      <div class="field"><label>Zip+4</label><input type="text" name="zip4" inputmode="numeric" maxlength="4"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>State</label><input type="text" name="state" value="VA" maxlength="2"></div>
+      <div class="field">
+        <label>Post Office</label>
+        <div class="input-wrap">
+          <input type="text" name="postOffice" placeholder="Post Office">
+          <button class="mic-btn" onclick="startMic(this,'postOffice')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">New/Resale</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="newResale" value="New"> New (Never Occupied)</label>
+          <label class="radio-item"><input type="radio" name="newResale" value="Resale"> Resale</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>PUD</label>
+        <div class="input-wrap">
+          <input type="text" name="pud" placeholder="PUD Name">
+          <button class="mic-btn" onclick="startMic(this,'pud')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">Subdivision</label>
+        <div class="input-wrap">
+          <input type="text" name="subdivision" placeholder="Subdivision">
+          <button class="mic-btn" onclick="startMic(this,'subdivision')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Neighborhood (Req'd if Subdivision=None)</label>
+        <div class="input-wrap">
+          <input type="text" name="neighborhood" placeholder="Neighborhood">
+          <button class="mic-btn" onclick="startMic(this,'neighborhood')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field required"><label class="required">Year Built</label><input type="text" name="yearBuilt" inputmode="numeric" maxlength="4"></div>
+      <div class="field"><label>Year Built Description</label><input type="text" name="yearBuiltDesc"></div>
+      <div class="field required"><label class="required">Above Grade Fin SQF</label><input type="text" name="aboveGradeFinSqf" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-4">
+      <div class="field required"><label class="required">Rooms</label><input type="text" name="rooms" inputmode="numeric"></div>
+      <div class="field required"><label class="required">Levels</label><input type="text" name="levels" inputmode="numeric"></div>
+      <div class="field"><label>Lot</label><input type="text" name="lot"></div>
+      <div class="field"><label>Above Grade UnFin SQF</label><input type="text" name="aboveGradeUnfinSqf" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field required"><label class="required">Bedrooms</label><input type="text" name="bedrooms" inputmode="numeric"></div>
+      <div class="field"><label>Below Grade Fin SQF</label><input type="text" name="belowGradeFinSqf" inputmode="numeric"></div>
+      <div class="field"><label>Below Grade UnFin SQF</label><input type="text" name="belowGradeUnfinSqf" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">SqFt Source</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Appraiser"> Appraiser</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Architect"> Architect</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Builder"> Builder</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Owner"> Owner</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Tax"> Tax</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Other"> Other</label>
+        </div>
+      </div>
+      <div class="field"><label>Fin SqFt Source Desc (150 chars)</label><textarea name="finSqftSourceDesc" maxlength="150" rows="2"></textarea></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Elementary School</label><input type="text" name="elementarySchool"></div>
+      <div class="field"><label>Middle School</label><input type="text" name="middleSchool"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>High School</label><input type="text" name="highSchool"></div>
+      <div class="field"><label>Other School</label><input type="text" name="otherSchool"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Directions (215 characters)</label>
+        <div class="input-wrap">
+          <textarea name="directions" maxlength="215" rows="2" placeholder="Driving directions to property"></textarea>
+          <button class="mic-btn" onclick="startMic(this,'directions')" style="align-self:flex-start;margin-top:4px"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 3: ROOMS (Pages 2-3) ===================== -->
+<div class="section collapsed" id="sec-rooms">
+  <div class="section-header" onclick="toggleSection('sec-rooms')">
+    <h2><span class="page-badge">P2-3</span> Room Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body" style="overflow-x:auto">
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Room Level required if Room Type selected</p>
+    <table class="room-table">
+      <thead><tr><th>Room Type</th><th>Length (ft.in)</th><th>Width (ft.in)</th><th>Level</th><th>Description (50 chars)</th></tr></thead>
+      <tbody id="roomTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== SECTION 4: BATH INFO (Page 3) ===================== -->
+<div class="section collapsed" id="sec-bath">
+  <div class="section-header" onclick="toggleSection('sec-bath')">
+    <h2><span class="page-badge">P3</span> Bath Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Description: "Shower", "Tub" or "Tub & Shower"</p>
+    <table class="room-table">
+      <thead><tr><th>Level</th><th>Description</th><th>Full Bath</th><th>Half Bath</th></tr></thead>
+      <tbody>
+        <tr><td><span class="room-label">Basement</span></td><td><input type="text" name="bathDescBasement"></td><td><input type="text" name="fullBathBasement" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathBasement" inputmode="numeric" style="width:50px"></td></tr>
+        <tr><td><span class="room-label">Level 1</span></td><td><input type="text" name="bathDescLevel1"></td><td><input type="text" name="fullBathLevel1" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathLevel1" inputmode="numeric" style="width:50px"></td></tr>
+        <tr><td><span class="room-label">Level 2</span></td><td><input type="text" name="bathDescLevel2"></td><td><input type="text" name="fullBathLevel2" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathLevel2" inputmode="numeric" style="width:50px"></td></tr>
+        <tr><td><span class="room-label">Level 3</span></td><td><input type="text" name="bathDescLevel3"></td><td><input type="text" name="fullBathLevel3" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathLevel3" inputmode="numeric" style="width:50px"></td></tr>
+        <tr><td><span class="room-label">Level 4</span></td><td><input type="text" name="bathDescLevel4"></td><td><input type="text" name="fullBathLevel4" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathLevel4" inputmode="numeric" style="width:50px"></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== SECTION 5: STYLE & FEATURES (Page 3) ===================== -->
+<div class="section collapsed" id="sec-style">
+  <div class="section-header" onclick="toggleSection('sec-style')">
+    <h2><span class="page-badge">P3</span> Style, Structure, Siding, Roof, Flooring, Attic</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Style (3)</div>
+    <div class="checkbox-group" id="style-checks"></div>
+    <div class="sub-header">Structure (2)</div>
+    <div class="checkbox-group narrow" id="structure-checks"></div>
+    <div class="sub-header">Siding (2)</div>
+    <div class="checkbox-group" id="siding-checks"></div>
+    <div class="sub-header">Roof (3)</div>
+    <div class="checkbox-group" id="roof-checks"></div>
+    <div class="sub-header">Flooring (4)</div>
+    <div class="checkbox-group" id="flooring-checks"></div>
+    <div class="sub-header">Attic (3)</div>
+    <div class="checkbox-group narrow" id="attic-checks"></div>
+    <div class="sub-header">Golf Frontage Y/N</div>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="golfFrontage" value="Yes"> Yes</label>
+      <label class="radio-item"><input type="radio" name="golfFrontage" value="No"> No</label>
+    </div>
+    <div class="sub-header" style="margin-top:8px">Golf View/Frontage</div>
+    <div class="checkbox-group narrow" id="golfview-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 6: PARKING & GARAGE (Page 4) ===================== -->
+<div class="section collapsed" id="sec-parking">
+  <div class="section-header" onclick="toggleSection('sec-parking')">
+    <h2><span class="page-badge">P4</span> Parking, Garage, Basement</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Parking (3)</div>
+    <div class="checkbox-group" id="parking-checks"></div>
+    <div class="field-row cols-2" style="margin-top:12px">
+      <div class="field">
+        <label>Garage Y/N</label>
+        <select name="garageYN"><option value="">--</option><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="field">
+        <label># Cars (Req'd if Garage=Y)</label>
+        <select name="garageCars"><option value="">--</option><option>1</option><option>1.5</option><option>2</option><option>2.5</option><option>3</option><option>4+</option></select>
+      </div>
+    </div>
+    <div class="sub-header">Garage (6) - Req'd if Garage=Y</div>
+    <div class="checkbox-group" id="garage-checks"></div>
+    <div class="field-row cols-2" style="margin-top:12px">
+      <div class="field">
+        <label>Basement Y/N</label>
+        <select name="basementYN"><option value="">--</option><option>Yes</option><option>No</option></select>
+      </div>
+    </div>
+    <div class="sub-header">Basement/Foundation (3) - Req'd if Basement=Y</div>
+    <div class="checkbox-group" id="basement-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 7: INTERIOR & EXTERIOR (Page 4) ===================== -->
+<div class="section collapsed" id="sec-interior">
+  <div class="section-header" onclick="toggleSection('sec-interior')">
+    <h2><span class="page-badge">P4</span> Interior & Exterior Features</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Interior (25)</div>
+    <div class="checkbox-group" id="interior-checks"></div>
+    <div class="sub-header">Exterior (10)</div>
+    <div class="checkbox-group" id="exterior-checks"></div>
+    <div class="sub-header">Water (3)</div>
+    <div class="checkbox-group narrow" id="water-checks"></div>
+    <div class="sub-header">Sewer / Septic</div>
+    <div class="checkbox-group" id="sewer-checks"></div>
+    <div class="field-row cols-2" style="margin-top:8px">
+      <div class="field"><label>Maintenance Contract Y/N</label><select name="maintenanceContract"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Currently Connected Internet</label></div>
+    </div>
+    <div class="checkbox-group narrow" id="internet-checks"></div>
+    <div class="field-row cols-2" style="margin-top:8px">
+      <div class="field"><label>Internet Description</label><input type="text" name="internetDesc"></div>
+      <div class="field"><label>ADU Y/N</label><select name="aduYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="field-row"><div class="field"><label>ADU Description</label><input type="text" name="aduDesc"></div></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 8: FENCED, COMMUNITY, APPLIANCES (Page 5) ===================== -->
+<div class="section collapsed" id="sec-community">
+  <div class="section-header" onclick="toggleSection('sec-community')">
+    <h2><span class="page-badge">P5</span> Fencing, Community, Appliances, Accessibility</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row cols-2">
+      <div class="field"><label>Fenced Y/N</label><select name="fencedYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="sub-header">Fenced (3) - Req'd if Fenced=Y</div>
+    <div class="checkbox-group" id="fenced-checks"></div>
+    <div class="sub-header">Community Amenities (20)</div>
+    <div class="checkbox-group" id="community-checks"></div>
+    <div class="sub-header">Appliances/Equipment (25)</div>
+    <div class="checkbox-group" id="appliance-checks"></div>
+    <div class="field-row cols-2" style="margin-top:8px">
+      <div class="field"><label>Disabl Equipd Y/N</label><select name="disablEquipYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="sub-header">Disabl Features (5) - Req'd if Disabl Equipd=Y</div>
+    <div class="checkbox-group" id="disabl-checks"></div>
+    <div class="sub-header">Restrictions (5)</div>
+    <div class="checkbox-group" id="restrictions-checks"></div>
+    <div class="sub-header">Unit Placement (3)</div>
+    <div class="checkbox-group narrow" id="unitplacement-checks"></div>
+    <div class="sub-header">Green Cert (4)</div>
+    <div class="checkbox-group" id="greencert-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 9: HVAC, FIREPLACE, POOL (Page 6) ===================== -->
+<div class="section collapsed" id="sec-hvac">
+  <div class="section-header" onclick="toggleSection('sec-hvac')">
+    <h2><span class="page-badge">P6</span> Heating, Cooling, Fireplace, Pool, Porch</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Heating (3)</div>
+    <div class="checkbox-group" id="heating-checks"></div>
+    <div class="field-row" style="margin-top:8px"><div class="field"><label>Other Desc (Req'd if Heating=Other)</label><input type="text" name="heatingOtherDesc"></div></div>
+    <div class="sub-header">Heat/Fuel (3)</div>
+    <div class="checkbox-group narrow" id="heatfuel-checks"></div>
+    <div class="field-row" style="margin-top:8px"><div class="field"><label>Other Desc (Req'd if Heat/Fuel=Other)</label><input type="text" name="heatfuelOtherDesc"></div></div>
+    <div class="sub-header">Cooling (3)</div>
+    <div class="checkbox-group" id="cooling-checks"></div>
+    <div class="field-row" style="margin-top:8px"><div class="field"><label>Other Desc (Req'd if Cooling=Other)</label><input type="text" name="coolingOtherDesc"></div></div>
+    <div class="sub-header">Water Heater (2)</div>
+    <div class="checkbox-group narrow" id="waterheater-checks"></div>
+    <div class="field-row cols-2" style="margin-top:12px">
+      <div class="field"><label># Fireplaces</label><input type="text" name="numFireplaces" inputmode="numeric" style="width:60px"></div>
+    </div>
+    <div class="sub-header">Fireplace (4)</div>
+    <div class="checkbox-group narrow" id="fireplace-checks"></div>
+    <div class="field-row cols-2" style="margin-top:12px">
+      <div class="field"><label>Pool Y/N</label><select name="poolYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="sub-header">Pool Description (5) - Req'd if Pool=Y</div>
+    <div class="checkbox-group" id="pool-checks"></div>
+    <div class="sub-header">Porch (3)</div>
+    <div class="checkbox-group narrow" id="porch-checks"></div>
+    <div class="sub-header">Wall Type (4)</div>
+    <div class="checkbox-group narrow" id="walltype-checks"></div>
+    <div class="sub-header">Water Type (5)</div>
+    <div class="checkbox-group" id="watertype-checks"></div>
+    <div class="sub-header">Building/Structure (10)</div>
+    <div class="checkbox-group" id="building-checks"></div>
+    <div class="sub-header">Farm Type (6)</div>
+    <div class="checkbox-group narrow" id="farmtype-checks"></div>
+    <div class="sub-header">Irrigation Source (3)</div>
+    <div class="checkbox-group narrow" id="irrigation-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 10: GENERAL INFO (Page 7) ===================== -->
+<div class="section collapsed" id="sec-general">
+  <div class="section-header" onclick="toggleSection('sec-general')">
+    <h2><span class="page-badge">P7</span> General Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row cols-2">
+      <div class="field"><label>Waterfront Y/N</label><select name="waterfrontYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Acres</label><input type="text" name="acres"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Body of Water</label><input type="text" name="bodyOfWater"></div>
+      <div class="field"><label>Lot Dimensions (LxW)</label><input type="text" name="lotDimensions" placeholder="e.g. 100x200"></div>
+    </div>
+    <div class="field-row cols-4">
+      <div class="field required"><label class="required">Tax Year</label><input type="text" name="taxYear" inputmode="numeric" maxlength="4"></div>
+      <div class="field required"><label class="required">Annual Taxes</label><input type="text" name="annualTaxes" inputmode="numeric"></div>
+      <div class="field"><label>Assd Land</label><input type="text" name="assdLand" inputmode="numeric"></div>
+      <div class="field"><label>Assd Imprv</label><input type="text" name="assdImprv" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Assd Total</label><input type="text" name="assdTotal" inputmode="numeric"></div>
+      <div class="field"><label>Legal (75 characters)</label><textarea name="legal" maxlength="75" rows="2"></textarea></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Investor Rental Cap Y/N</label><select name="investorRentalCap"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Water Frontage</label><input type="text" name="waterFrontage"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Road Frontage</label><input type="text" name="roadFrontage"></div>
+      <div class="field"><label>Home Warranty</label><input type="text" name="homeWarranty"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Current Zoning</label><input type="text" name="currentZoning"></div>
+      <div class="field"><label>Water Depth</label>
+        <select name="waterDepth"><option value="">--</option><option>0-2 ft</option><option>2-4 ft</option><option>4-6 ft</option><option>6+ ft</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Model Available Y/N (Req'd if New)</label><select name="modelAvailable"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Model Furnished Y/N</label><select name="modelFurnished"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Does Not Convey</label><textarea name="doesNotConvey" rows="2"></textarea></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Does Convey</label><textarea name="doesConvey" rows="2"></textarea></div>
+    </div>
+    <div class="sub-header">Lot Description (6)</div>
+    <div class="checkbox-group" id="lotdesc-checks"></div>
+    <div class="field-row cols-3" style="margin-top:12px">
+      <div class="field"><label>Minimum Deposit</label><input type="text" name="minimumDeposit" inputmode="numeric"></div>
+      <div class="field"><label>Pre Qual Letter Y/N</label><select name="preQualLetter"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Res Energy Efficient Appraisal Y/N</label><select name="resEnergyAppraisal"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Home Energy Score (1-10)</label><input type="text" name="homeEnergyScore" inputmode="numeric"></div>
+      <div class="field"><label>Home Energy Rating System (10 chars)</label><input type="text" name="homeEnergyRating" maxlength="10"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Disclosures (2)</label>
+        <select name="disclosures"><option value="">--</option><option>Listing Attachment</option><option>No Form</option><option>Not Required</option><option>Office</option><option>Property</option></select>
+      </div>
+      <div class="field"><label>Lead Disclosure (2)</label>
+        <select name="leadDisclosure"><option value="">--</option><option>Listing Attachment</option><option>No Form</option><option>Not Required</option><option>Office</option><option>Property</option></select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 11: REMARKS (Page 8) ===================== -->
+<div class="section collapsed" id="sec-remarks">
+  <div class="section-header" onclick="toggleSection('sec-remarks')">
+    <h2><span class="page-badge">P8</span> Remarks & Fees</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row">
+      <div class="field required">
+        <label class="required">Remarks (2048 characters)</label>
+        <div class="input-wrap">
+          <textarea name="remarks" maxlength="2048" rows="5" placeholder="Property description..."></textarea>
+          <button class="mic-btn" onclick="startMic(this,'remarks')" style="align-self:flex-start;margin-top:4px"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Agent Only Comments (1000 characters)</label>
+        <div class="input-wrap">
+          <textarea name="agentComments" maxlength="1000" rows="3" placeholder="Agent only notes..."></textarea>
+          <button class="mic-btn" onclick="startMic(this,'agentComments')" style="align-self:flex-start;margin-top:4px"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Copyright Assign Y/N</label><select name="copyrightAssign"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+
+    <div class="sub-header">Fee Information</div>
+    <div class="field-row cols-4">
+      <div class="field"><label>HOA/Condo</label><select name="hoaCondo"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Add'l HOA Y/N</label><select name="addlHoa"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Membership Reqd</label><select name="membershipReqd"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Fee $ (Req'd if HOA=Y)</label><input type="text" name="hoaFee" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field"><label>Fee Period</label><select name="feePeriod"><option value="">--</option><option>Monthly</option><option>Quarterly</option><option>Yearly</option></select></div>
+      <div class="field"><label>Management Firm</label><input type="text" name="managementFirm" maxlength="30"></div>
+      <div class="field"><label>Management Phone</label><input type="text" name="managementPhone" placeholder="___-___-____"></div>
+    </div>
+    <div class="field-row"><div class="field"><label>HOA Website</label><input type="text" name="hoaWebsite"></div></div>
+    <div class="sub-header">Fee Desc (2)</div>
+    <div class="checkbox-group narrow" id="feedesc-checks"></div>
+    <div class="sub-header">Fee Includes (10)</div>
+    <div class="checkbox-group" id="feeincludes-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 12: OWNER & AGENT (Page 9) ===================== -->
+<div class="section collapsed" id="sec-owner">
+  <div class="section-header" onclick="toggleSection('sec-owner')">
+    <h2><span class="page-badge">P9</span> Owner & Agent Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Owner Information</div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Owner Name</label><input type="text" name="ownerName"></div>
+      <div class="field"><label>Owner Name 2</label><input type="text" name="ownerName2"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Occupant Name</label><input type="text" name="occupantName"></div>
+      <div class="field"><label>Owner Phone</label><input type="text" name="ownerPhone" placeholder="___-___-____"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Occupant Phone</label><input type="text" name="occupantPhone" placeholder="___-___-____"></div>
+      <div class="field"><label>Owner Agent Y/N</label><select name="ownerAgent"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Agent Related to Seller Y/N</label><select name="agentRelatedSeller"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Occupied By</label><select name="occupiedBy"><option value="">--</option><option>Other</option><option>Owner</option><option>Tenant</option><option>Under Construction</option><option>Vacant</option></select></div>
+    </div>
+    <div class="sub-header">Owned By (3)</div>
+    <div class="checkbox-group narrow" id="ownedby-checks"></div>
+    <div class="sub-header">Possession (2)</div>
+    <div class="checkbox-group" id="possession-checks"></div>
+
+    <div class="sub-header">Agent/Office Information</div>
+    <div class="field-row cols-2">
+      <div class="field"><label>List Agent Code</label><input type="text" name="listAgentCode"></div>
+      <div class="field"><label>List Agent Name</label><input type="text" name="listAgentName"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>List Office Code</label><input type="text" name="listOfficeCode"></div>
+      <div class="field"><label>List Office Name</label><input type="text" name="listOfficeName"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Co-List Agent Code</label><input type="text" name="coListAgentCode"></div>
+      <div class="field"><label>Co-List Agent Name</label><input type="text" name="coListAgentName"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Co-List Office Name</label><input type="text" name="coListOfficeName"></div>
+      <div class="field"><label>List Type</label>
+        <select name="listType"><option value="">--</option><option>Exclusive Agency</option><option>Exclusive Right</option><option>MLS Only Listing</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Limited Rep Y/N</label><select name="limitedRep"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Add'l Fee $</label><input type="text" name="addlFee" inputmode="numeric"></div>
+    </div>
+    <div class="field-row"><div class="field"><label>Add'l Fee Desc (50 chars)</label><input type="text" name="addlFeeDesc" maxlength="50"></div></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 13: SHOWING & VIRTUAL TOUR (Page 10) ===================== -->
+<div class="section collapsed" id="sec-showing">
+  <div class="section-header" onclick="toggleSection('sec-showing')">
+    <h2><span class="page-badge">P10</span> Showing, Virtual Tour, Internet Display</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Showing Instructions</div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Showing Instr 1</label>
+        <select name="showingInstr1"><option value="">--</option><option>Accompany Show</option><option>Appt. Required</option></select>
+      </div>
+      <div class="field"><label>LockBox Type</label>
+        <select name="lockboxType"><option value="">--</option><option>Supra</option><option>Sentrilock</option><option>Both</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Supra Serial LB #</label><input type="text" name="supraSerial"></div>
+      <div class="field"><label>Sentrilock Serial LB #</label><input type="text" name="sentrilockSerial"></div>
+    </div>
+    <div class="sub-header">Showing Instr 2</div>
+    <div class="checkbox-group" id="showinginstr2-checks"></div>
+    <div class="field-row"><div class="field"><label>Addl Shw Inst</label><textarea name="addlShwInst" rows="2"></textarea></div></div>
+
+    <div class="sub-header">Virtual Tour Information</div>
+    <div class="field-row">
+      <div class="field"><label>Virtual Tour URL</label><input type="text" name="virtualTour" placeholder="https://"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Additional Virtual Tour URL</label><input type="text" name="addlVirtualTour" placeholder="https://"></div>
+    </div>
+
+    <div class="sub-header">Internet Display</div>
+    <div class="field-row cols-4">
+      <div class="field"><label>Internet Display Y/N</label><select name="internetDisplay"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Address Display Y/N</label><select name="addressDisplay"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Comments/Reviews Y/N</label><select name="commentsReviews"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>AVM Y/N</label><select name="avm"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end formContainer -->
+
+<div class="toast" id="toast"></div>
+
+<div class="bottom-nav">
+  <button onclick="scrollToTop()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5m-7 7l7-7 7 7"/></svg>
+    Top
+  </button>
+  <button onclick="expandAll()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Expand
+  </button>
+  <button onclick="collapseAll()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+    Collapse
+  </button>
+  <button onclick="exportJSON()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export
+  </button>
+</div>
+
+<script>
+// ======================== CHECKBOX DATA ========================
+const checkboxData = {
+  'style-checks': ['2-Story','A-frame','Cape','Colonial','Contemporary','Cottage/Bungalow','Craftsman','Custom','Dutch Colonial','Farm House','Gentleman Farm','Green Certified Home','Log','Manufactured Homes','Mediterranean/Spanish','Modern','Modular','Other','Patio Home','Ranch','Rowhouse/Townhouse','Saltbox','Split Foyer','Transitional','Tri-Level/Quad Level','Tudor','Victorian'],
+  'structure-checks': ['Block','Brick','Concrete','Frame','Log','Metal','Other','Stone','Wood'],
+  'siding-checks': ['Aluminum','Asbestos','Asphalt','Block','Brick','Brick Veneer','Cedar','Cedar Shake','Clapboard','Glass','Hardboard','Hardiplank Type','Log','Other','Redwood','Shingle','Steel','Stone','Stucco','Synth Stucco','T111','Vinyl','Wood'],
+  'roof-checks': ['Asbestos','Asphalt','Built-up','Composition','Concrete Com','Dimensional','Flat','Metal','Other','Rubber','Shingled','Slate','Slate-Manufactured','Sloped','Tar & Gravel','Tile','Wood'],
+  'flooring-checks': ['Bamboo','Carpet-Part','Carpet-W-W','Concrete','Cork','Granite','Laminate','Linoleum','Marble','Slate','Tile','Tile-Ceramic','Vinyl','Wood','Wood-Parquet','Wood-Part'],
+  'attic-checks': ['Access Panel','Expandable','Finished','Floored','No Attic','Part Finished','Pull Down','Walk-In','Walk-Up'],
+  'golfview-checks': ['Cart Path Side','Fairway','Green','Tee','View'],
+  'parking-checks': ['Assigned','Carport','Circular Drive','Common Drive','Covered','Double Width','In Alley','No Parking','Off Street','On Street','Open Lot','Paved Driveway','Underground','Unpaved Driveway','Valet','Visitor'],
+  'garage-checks': ['Apartment','Attached','Auto Door Opener','Basement','Detached','Direct Entry','Finished','Golf Cart','Heated','No Garage','Other','Oversized','Pedestrian Door','Side/Rear Load','Storage Above','Unfinished','Workshop'],
+  'basement-checks': ['Basement-Full','Basement-Partial','Crawl Space','Dirt','Finished-Com','Finished-Part','Floored','Garage Access','Heated','Interior Access','Locked Storage','Other','Roughed In','Slab','Unfinished','Walk-Out','Workshop'],
+  'interior-checks': ['1st Floor Bedrm W/ Full Bath','1st Floor Bedroom','1st Floor Primary Bedroom','9 Ft + Ceilings',"Add'l 1st Floor Primary BR",'Atrium','Bay/Bow Window','Beamed Ceiling','Breakfast Nook','Breezeway','Built In Cabinet/Bookcases','Butlers Pantry','Cable TV','Cathedral Ceiling','Ceiling Fan','Center Hall','Countertops - Granite/Stone','Countertops - Laminate','Countertops - Solid Surface','Countertops - Tile','Dining Area','Double Vanity','Dryer Hookup','DSL','Eat-In-Kitchen','Fire Sprinkler','Fireplace Insert','Formal Dining Room','French Doors','Garden Tub','Hot Tub','Housekeepers Quarters','Internal Balcony','Internet Ready','Island','Jetted Tub','Loft','MBR Bath','Pantry','Recessed Lighting','Rough-In Bath','Satellite Dish','Security System','Separate Suite','Skylight','Solar Tube','Stack Wshr/Dryer Hookup','Steam Shower','Sunken Tub','Track Lighting','Tray Ceiling','Walk-In Closet','Washer Hookup','Wet Bar','Window Treatment','Workshop'],
+  'exterior-checks': ['Awnings','Barn/Stable','Boat Lift','Bulkhead/RIP','Controlled Access','Deck','Dock/Pier','Gazebo','Green House Wn','Guest House','Horse Permitted','Hot Tub','Insulated Doors','Irrigation System','Lead Glass Windows','Out Building','Outdoor Lighting','Palladian Windows','Porch','Private Storage','Public Park','Sauna','Screens','Sliding Doors','Stained Glass','Storage Shed Attached','Storage Shed Detached','Storm Doors','Storm Windows','Swing Sets','Tennis Court','Thermal Windows'],
+  'water-checks': ['Community Well','Public Water','Well','Other'],
+  'sewer-checks': ['Septic - Aerobic','Septic - Conventional','Septic - Engineered','Septic - Mound','Septic - Shared','Sewer - Community','Sewer - Public','None','Other'],
+  'internet-checks': ['Addtl Info','Cable','DSL','Fiber','Other','Satellite','Unknown'],
+  'fenced-checks': ['All Fenced','Barbed','Board','Cedar','Chain Link','Combination','Decorative','Electric','Front Only','Invisible','No Fencing','Part Fenced','Picket','Privacy','Rear Only','Security','Split Rail','Vinyl/PVC','Wall','Wrought Iron'],
+  'community-checks': ['Association','Basketball','Beach','Boat Ramp','Clubhouse','Common Area','Common Laundry','Community Room','Controlled Access','Dock','Elevator','Exercise Room','Extra Storage','Gated Community','Golf Course','Hot Tub','Jogging Path','Kiddie Pool','Lake/Pond','Landscaping','Lifeguard','Maintenance Free','Marina','On Bus Line','Picnic Area','Playground','Pool','Professional Management','Putting Green','Resident Manager','Road Maintenance','RV/Boat Storage','Sauna','Security Guard','Sports Field','Tennis Court'],
+  'appliance-checks': ['Attic Fan','Central Vac','Compactor','Countertop Range','Dishwasher','Disposal','Double Oven','Downdraft Range','Drop-In Range','Dryer','Electric Air Cln','Electric Cooking','Exhaust Fan','Fire Sprinkler System','Freezer','Gas Cooking','Gas Grill','Generator','Generator Wired','Humidifier','Ice Maker','Intercom','Microwave','Oven','Refrigerator','Satellite Dish','Self/Con Cleaning','Smoke Alarm','Smooth Top Cooking','Stack Washer/Dryer','Stove','Stove Hood','Sump Pump','Wall Oven','Washer','Water Purifier','Water Softener','Wine Cooler'],
+  'disabl-checks': ['Additional Features','Auditory Alarms','Chair Lift','Comfort Height Switches','Elevator','Entry Level Accessible Full Bath','Entry Level Accessible Kitchen','Entry Level Bedrooms','Entry Ramp','Grab Bars','Roll In Shower','Roll Under Sink','Shower Seat','Stair Lift','Stepless Entry','Variable Height Cabinets','Variable Height Counters','Visual Alarms','Wheelchair Adapted','Wide Doorways or Min. 32" Wide Doors'],
+  'restrictions-checks': ['Age Qualified','Age-Restricted Community','Architec Des','Assoc Restrictions','Bldg Morator','Bldg Restrictions','Crops 2B Harv','Deed Restrictions','Easement','Excluded Party','Health Dept','Historic','Mineral Rights','No Mobile Homes','Other','Right Of Way','RV/Boat Storage','Subdiv Restr','Variance Needed','Waterfront Restrictions','Wetlands','Zoning Restrictions'],
+  'unitplacement-checks': ['Corner Unit','Detached','End Unit','Interior Unit','Lower Level','Middle Level','Street Level','Top Level','Walkout'],
+  'greencert-checks': ['EarthCraft','Energy Star Appliances','Energy Star/House','Home Performance w/Energy Star (exist homes)','Leed for Homes','National Green Building Standard','Other'],
+  'heating-checks': ['2 Zoned Heat','3 Or More Zones','Baseboard','Coal Stove','Electric','Floor Furnace','Forced Hot Air','Geothermal','Heat Pump','Hot Water','Hot Water Coil','Other','Radiant','Radiator','Space Heater','Steam','Timer Thermostat','Wall Furnace','Wood Stove'],
+  'heatfuel-checks': ['Coal','Electric','Geothermal','Multi-Fuel System','Natural Gas','None','Oil','Other','Propane Gas','Solar','Wood'],
+  'cooling-checks': ['2 Zoned AC','3 Or More Zones','Central Air','Electric','Gas A/C','Geothermal','Heat Pump','Individual Wall Units','Individual Window Units','None','Other','Timer Thermostat','Whole House Fan'],
+  'waterheater-checks': ['Electric','Instant Hot','Insulated','Natural Gas','Off Furnace','Oil','Other','Propane Gas','Recirculating','Solar','Tank','Tankless'],
+  'fireplace-checks': ['Brick','Direct Vent','Electric','Gas','Non-Vented','Non-Working','Prefabricate','Stone','Wood Burning'],
+  'pool-checks': ['Above Ground','Community/Off Site','Concrete','Covered','Fenced','Gunite','Heated','Hot Tub','In Ground','Indoor','Lap Pool','Membership Req','Other','Outdoor','Pool Equipment','Pool House','Self-Cleaner','Vinyl','With Spa','Within Yard'],
+  'porch-checks': ['Balcony','Deck','Front','Front Country','Front Full','Glass','Patio','Rear','Screened','Side','Sleeping Porch','Stoop','Wrap Around'],
+  'walltype-checks': ['Block','Brick','Drywall','Glass','Glass Block','Mixed','Other','Paneling','Plaster','Wood'],
+  'watertype-checks': ['Access','Bay Frontage','Beach','Creek Frontage','Dock/Mooring','Harbor Frontage','Lake','Lake Frontage','Marsh','MLW 0-2 Ft','MLW 2-4 Ft','MLW 4-6 Ft','MLW 6+ Ft','Navigable','Ocean/Bay Frontage','Pond','Riparian Rights','River','River Frontage','Sound Frontage','Stream','Walk To Water','Water Access','Whitewater'],
+  'building-checks': ['Boathouse','Barn','Cabin','Corn Crib','Cottage','Dairy','Feed Barn','Garage','Greenhouse','Hay Building','Livestock','Manufactured Home','Modular','Pump House','Shed','Smoke House','Stable','Storage','Tack Room','Tobacco Building','Utility Building'],
+  'farmtype-checks': ['Cattle','Crops','Dairy','Horse','Livestock','Nursery','Orchard','Poultry','Tree'],
+  'irrigation-checks': ['Creek/Stream','Irrigated','Lake','Pond','River'],
+  'lotdesc-checks': ['Additional Parcel Available','Beach','Boat Ramp','Buildable','Bulkhead/RIP','City View','Cleared','Corner','Crops','Cross Fenced','Cul-De-Sac','Curb/Gutters','Dead End Street','Fenced/Enclosed','Flag Lot','Fruit Trees','Graded','Irregular','Landlocked','Landscaped','Level','On Golf Course','Paper Street','Park Like','Pasture','Possible Subdivision','Possible Wetland','Railroad Access','Railroad Siding','Railroad Spur','Rolling','Sidewalks','Sloping','Steep Slopes','Street Lights','Subdividable','Timber-Hardwood','Timber-Mixed','Timber-Pine','Timbered-Clear Cut','Timbered-Select Cut','Unimproved','Waterfront','Waterview','Wooded','Zero Lot Line'],
+  'feedesc-checks': ['Community Association','Condo Association','Cooperative','Owners Association','Road Maintenance'],
+  'feeincludes-checks': ['Clubhouse','Comm Ar Mnt','Common Area','Community Utilities','Exterior Maintenance','Insurance','Limited Exterior Maintenance','Limited Yard Maintenance','Management Fees','Pool','Recreational Facilities','Road Maintenance','Security','Sewer','Snow Removal','Trash Removal','Water','Water Access','Yard Maintenance'],
+  'ownedby-checks': ['Corporate','Estate','Individuals','Other','Partnership','REO','Relocation'],
+  'possession-checks': ['At Closing','Immediate','Leasehold Rights','Negotiable','Other','Tenant Rights'],
+  'showinginstr2-checks': ['LB Call Agent','LB Call List Office','LB Call Owner','LB Call Showing Service','LB Call Tenant','LB Go Direct','LB Use Online Showing Service','No LB Call Agent','No LB Call List Office','No LB Call Owner','No LB Call Showing Service','No LB Call Tenant','No LB Go Direct','No LB Use Online Showing Service']
+};
+
+// ======================== ROOM DATA ========================
+const roomTypes = ['Additional Room 1','Additional Room 2','Additional Room 3','Additional Room 4','Bedroom 2','Bedroom 3','Bedroom 4','Bedroom 5','Dining Room','Family Room','Florida Room','Foyer','Great Room','Kitchen','Laundry-Utility Rm','Living Room','Primary Bedroom','Primary Bedroom #2','Morning Room','Office - Study','Rec Room'];
+
+// ======================== INIT ========================
+function init() {
+  // Build checkbox groups
+  for (const [id, items] of Object.entries(checkboxData)) {
+    const container = document.getElementById(id);
+    if (!container) continue;
+    container.innerHTML = items.map(item => {
+      const safeName = id + '_' + item.replace(/[^a-zA-Z0-9]/g, '_');
+      return `<label class="checkbox-item"><input type="checkbox" name="${safeName}" value="${item}"> ${item}</label>`;
+    }).join('');
+  }
+
+  // Build room table
+  const tbody = document.getElementById('roomTableBody');
+  tbody.innerHTML = roomTypes.map(room => {
+    const key = room.replace(/[^a-zA-Z0-9]/g, '_');
+    return `<tr>
+      <td><span class="room-label">${room}</span></td>
+      <td><input type="text" name="room_${key}_length" placeholder="ft.in" style="width:70px"></td>
+      <td><input type="text" name="room_${key}_width" placeholder="ft.in" style="width:70px"></td>
+      <td><input type="text" name="room_${key}_level" style="width:50px"></td>
+      <td><input type="text" name="room_${key}_desc" maxlength="50"></td>
+    </tr>`;
+  }).join('');
+
+  // Load saved data
+  loadFormData();
+
+  // Auto-save on change
+  document.addEventListener('input', debounce(saveFormData, 500));
+  document.addEventListener('change', debounce(saveFormData, 500));
+
+  updateProgress();
+}
+
+// ======================== SECTION TOGGLE ========================
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+function expandAll() {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('collapsed'));
+}
+function collapseAll() {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('collapsed'));
+}
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ======================== SPEECH-TO-TEXT ========================
+let currentRecognition = null;
+let currentMicBtn = null;
+
+function startMic(btn, fieldName) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Speech recognition not supported in this browser');
+    return;
+  }
+
+  // Stop if already recording
+  if (currentMicBtn === btn) {
+    currentRecognition.stop();
+    btn.classList.remove('recording');
+    currentMicBtn = null;
+    return;
+  }
+
+  // Stop previous
+  if (currentRecognition) {
+    currentRecognition.stop();
+    if (currentMicBtn) currentMicBtn.classList.remove('recording');
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  const field = document.querySelector(`[name="${fieldName}"]`);
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    if (field) {
+      field.value = (field.value ? field.value + ' ' : '') + transcript;
+      field.dispatchEvent(new Event('input'));
+    }
+    btn.classList.remove('recording');
+    currentMicBtn = null;
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Speech error:', event.error);
+    btn.classList.remove('recording');
+    currentMicBtn = null;
+    if (event.error === 'not-allowed') {
+      showToast('Microphone access denied. Check browser settings.');
+    }
+  };
+
+  recognition.onend = () => {
+    btn.classList.remove('recording');
+    currentMicBtn = null;
+  };
+
+  btn.classList.add('recording');
+  currentMicBtn = btn;
+  currentRecognition = recognition;
+  recognition.start();
+}
+
+// ======================== TRANSCRIPT PARSER ========================
+function openTranscript() {
+  document.getElementById('transcriptModal').classList.add('active');
+}
+function closeTranscript() {
+  document.getElementById('transcriptModal').classList.remove('active');
+}
+
+function parseTranscript() {
+  const text = document.getElementById('transcriptText').value.toLowerCase();
+  if (!text.trim()) { showToast('Please paste a transcript first'); return; }
+
+  const mappings = [
+    { patterns: ['county'], field: 'county' },
+    { patterns: ['parcel id', 'pid', 'parcel number'], field: 'pid' },
+    { patterns: ['owner first name', 'first name', 'owner first'], field: 'ownerFirstName' },
+    { patterns: ['owner last name', 'last name', 'owner last'], field: 'ownerLastName' },
+    { patterns: ['house number', 'street number', 'house num'], field: 'houseNumber' },
+    { patterns: ['street name'], field: 'streetName' },
+    { patterns: ['unit number', 'unit num', 'apt number'], field: 'unitNum' },
+    { patterns: ['list price', 'listing price', 'price'], field: 'listPrice' },
+    { patterns: ['zip code', 'zip'], field: 'zipCode' },
+    { patterns: ['post office', 'city'], field: 'postOffice' },
+    { patterns: ['subdivision'], field: 'subdivision' },
+    { patterns: ['neighborhood'], field: 'neighborhood' },
+    { patterns: ['year built'], field: 'yearBuilt' },
+    { patterns: ['above grade finished', 'finished square', 'square feet', 'square footage', 'sqft'], field: 'aboveGradeFinSqf' },
+    { patterns: ['bedrooms', 'beds', 'bedroom count'], field: 'bedrooms' },
+    { patterns: ['rooms', 'total rooms'], field: 'rooms' },
+    { patterns: ['levels', 'stories', 'floors'], field: 'levels' },
+    { patterns: ['lot size', 'lot'], field: 'lot' },
+    { patterns: ['elementary school', 'elementary'], field: 'elementarySchool' },
+    { patterns: ['middle school'], field: 'middleSchool' },
+    { patterns: ['high school'], field: 'highSchool' },
+    { patterns: ['tax year'], field: 'taxYear' },
+    { patterns: ['annual taxes', 'taxes'], field: 'annualTaxes' },
+    { patterns: ['acres', 'acreage'], field: 'acres' },
+    { patterns: ['zoning', 'current zoning'], field: 'currentZoning' },
+    { patterns: ['directions'], field: 'directions' },
+    { patterns: ['remarks', 'description', 'property description'], field: 'remarks' },
+    { patterns: ['hoa fee', 'association fee'], field: 'hoaFee' },
+  ];
+
+  let filled = 0;
+  for (const mapping of mappings) {
+    for (const pattern of mapping.patterns) {
+      // Match patterns like "county is henrico" or "county: henrico" or "county henrico"
+      const regex = new RegExp(pattern + '\\s*(?:is|:|,)?\\s*([^,\\.\\n]+)', 'i');
+      const match = text.match(regex);
+      if (match) {
+        const value = match[1].trim();
+        const field = document.querySelector(`[name="${mapping.field}"]`);
+        if (field && value) {
+          field.value = value.charAt(0).toUpperCase() + value.slice(1);
+          field.dispatchEvent(new Event('input'));
+          filled++;
+        }
+        break;
+      }
+    }
+  }
+
+  // Try to detect property type
+  if (text.includes('single family')) setRadio('propertyType', 'Single Family');
+  else if (text.includes('townhouse')) setRadio('propertyType', 'Townhouse');
+  else if (text.includes('condo')) setRadio('propertyType', 'Condo');
+
+  // Detect style
+  const styles = ['ranch','colonial','cape','contemporary','craftsman','victorian','tudor','split foyer','modern','farm house'];
+  for (const s of styles) {
+    if (text.includes(s)) {
+      const cb = document.querySelector(`[value="${s.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')}"]`);
+      if (cb) cb.checked = true;
+    }
+  }
+
+  // Detect new/resale
+  if (text.includes('new construction') || text.includes('never occupied')) setRadio('newResale', 'New');
+  else if (text.includes('resale')) setRadio('newResale', 'Resale');
+
+  closeTranscript();
+  saveFormData();
+  updateProgress();
+  showToast(`Filled ${filled} fields from transcript`);
+}
+
+function setRadio(name, value) {
+  const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (radio) radio.checked = true;
+}
+
+// ======================== SAVE / LOAD ========================
+function saveFormData() {
+  const data = {};
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'checkbox') {
+      data[el.name] = el.checked;
+    } else if (el.type === 'radio') {
+      if (el.checked) data[el.name] = el.value;
+    } else {
+      if (el.value) data[el.name] = el.value;
+    }
+  });
+  try {
+    window._formData = data;
+    // Use sessionStorage as fallback since localStorage may not work
+    try { sessionStorage.setItem('cvr525_data', JSON.stringify(data)); } catch(e) {}
+  } catch(e) {}
+  updateProgress();
+}
+
+function loadFormData() {
+  let data = null;
+  try { data = JSON.parse(sessionStorage.getItem('cvr525_data')); } catch(e) {}
+  if (window._formData) data = window._formData;
+  if (!data) return;
+
+  for (const [name, value] of Object.entries(data)) {
+    const el = document.querySelector(`[name="${name}"]`);
+    if (!el) continue;
+    if (el.type === 'checkbox') {
+      el.checked = value;
+    } else if (el.type === 'radio') {
+      const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+      if (radio) radio.checked = true;
+    } else {
+      el.value = value;
+    }
+  }
+}
+
+function clearForm() {
+  if (!confirm('Clear all form data? This cannot be undone.')) return;
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+    else el.value = '';
+  });
+  try { sessionStorage.removeItem('cvr525_data'); } catch(e) {}
+  window._formData = {};
+  updateProgress();
+  showToast('Form cleared');
+}
+
+// ======================== EXPORT ========================
+function exportJSON() {
+  const data = {};
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'checkbox') {
+      if (el.checked) {
+        const group = el.name.split('_').slice(0, -1).join('_');
+        if (!data[group]) data[group] = [];
+        data[group].push(el.value);
+      }
+    } else if (el.type === 'radio') {
+      if (el.checked) data[el.name] = el.value;
+    } else {
+      if (el.value) data[el.name] = el.value;
+    }
+  });
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cvr525_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON exported');
+}
+
+// ======================== PROGRESS ========================
+function updateProgress() {
+  const required = document.querySelectorAll('.field.required input, .field.required select, .field.required textarea');
+  let filled = 0;
+  let total = 0;
+  required.forEach(el => {
+    total++;
+    if (el.value && el.value !== '' && el.value !== '--') filled++;
+  });
+  // Also count checked radios for required fields
+  const requiredRadios = new Set();
+  document.querySelectorAll('.field.required .radio-group input[type="radio"]').forEach(r => {
+    requiredRadios.add(r.name);
+    if (r.checked) filled++;
+  });
+  total += requiredRadios.size;
+
+  const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = pct;
+}
+
+// ======================== UTILS ========================
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Init on load
+init();
+</script>
+</body>
+</html>
