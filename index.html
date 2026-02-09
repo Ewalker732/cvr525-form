@@ -478,6 +478,46 @@ body {
 .filled-summary .item .fname { color: var(--text-muted); }
 .filled-summary .item .fval { font-weight: 600; max-width: 60%; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Saved Listings Panel */
+.listings-list { max-height: 300px; overflow-y: auto; }
+.listing-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.listing-card:hover { border-color: var(--primary-light); background: rgba(42,82,152,0.03); }
+.listing-card.active { border-color: var(--primary); background: rgba(42,82,152,0.08); }
+.listing-card .lc-info { flex: 1; }
+.listing-card .lc-title { font-size: 14px; font-weight: 600; }
+.listing-card .lc-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.listing-card .lc-actions { display: flex; gap: 4px; }
+.listing-card .lc-btn {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 8px; font-size: 11px; cursor: pointer; color: var(--text-muted);
+}
+.listing-card .lc-btn:hover { border-color: var(--primary-light); color: var(--primary); }
+.listing-card .lc-btn.del:hover { border-color: var(--accent); color: var(--accent); }
+.current-listing-bar {
+  background: rgba(56,161,105,0.1);
+  border: 1px solid rgba(56,161,105,0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #276749;
+  margin: 8px 12px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.current-listing-bar .cl-name { font-weight: 600; }
+.current-listing-bar .cl-save { font-size: 10px; opacity: 0.8; }
+
 /* Bottom nav */
 .bottom-nav {
   position: fixed;
@@ -541,6 +581,10 @@ body {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Export JSON
     </button>
+    <button class="header-btn" onclick="openListingsPanel()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Listings
+    </button>
     <button class="header-btn danger" onclick="clearForm()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
       Clear
@@ -563,6 +607,29 @@ body {
     <div class="btn-row">
       <button class="btn btn-cancel" onclick="closeTranscript()">Cancel</button>
       <button class="btn btn-primary" onclick="parseTranscript()">Parse & Fill</button>
+    </div>
+  </div>
+</div>
+
+<!-- Current Listing Bar -->
+<div class="current-listing-bar" id="currentListingBar" style="display:none">
+  <span><span class="cl-name" id="currentListingName"></span></span>
+  <span class="cl-save" id="currentListingSaved"></span>
+</div>
+
+<!-- Listings Management Modal -->
+<div class="modal-overlay" id="listingsModal">
+  <div class="modal">
+    <h2>Saved Listings</h2>
+    <p class="parse-instructions">Your listings are saved in this browser's storage. Use Export JSON to download a backup file.</p>
+    <div class="btn-row" style="justify-content:flex-start;margin-bottom:12px">
+      <button class="btn btn-primary" onclick="saveCurrentListing()">Save Current as New Listing</button>
+      <button class="btn btn-cancel" onclick="importListingJSON()">Import JSON</button>
+    </div>
+    <input type="file" id="importJsonInput" accept=".json" style="display:none" onchange="handleImportJSON(this.files[0])">
+    <div class="listings-list" id="listingsList"></div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeListingsPanel()">Close</button>
     </div>
   </div>
 </div>
@@ -2260,8 +2327,10 @@ function setRadio(name, value) {
   if (radio) radio.checked = true;
 }
 
-// ======================== SAVE / LOAD ========================
-function saveFormData() {
+// ======================== SAVE / LOAD (localStorage + Multi-Listing) ========================
+let currentListingId = null;
+
+function getFormData() {
   const data = {};
   document.querySelectorAll('input, select, textarea').forEach(el => {
     if (el.type === 'checkbox') {
@@ -2272,20 +2341,68 @@ function saveFormData() {
       if (el.value) data[el.name] = el.value;
     }
   });
-  try {
-    window._formData = data;
-    // Use sessionStorage as fallback since localStorage may not work
-    try { sessionStorage.setItem('cvr525_data', JSON.stringify(data)); } catch(e) {}
-  } catch(e) {}
+  return data;
+}
+
+function getListingName() {
+  const addr = document.querySelector('[name="houseNumber"]');
+  const street = document.querySelector('[name="streetNameTax"]') || document.querySelector('[name="streetName"]');
+  const city = document.querySelector('[name="countyCity"]') || document.querySelector('[name="county"]');
+  let name = '';
+  if (addr && addr.value) name += addr.value;
+  if (street && street.value) name += (name ? ' ' : '') + street.value;
+  if (city && city.value) name += (name ? ', ' : '') + city.value;
+  return name || 'Untitled Listing';
+}
+
+function saveFormData() {
+  const data = getFormData();
+  // Expose data globally for Claude in Chrome to read
+  window.CVR525_DATA = data;
+  window.CVR525_LISTING_NAME = getListingName();
+
+  // Save to localStorage (persistent across sessions)
+  try { localStorage.setItem('cvr525_current', JSON.stringify(data)); } catch(e) {}
+
+  // If we have a current listing, update it too
+  if (currentListingId) {
+    try {
+      const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+      if (listings[currentListingId]) {
+        listings[currentListingId].data = data;
+        listings[currentListingId].name = getListingName();
+        listings[currentListingId].updated = new Date().toISOString();
+        localStorage.setItem('cvr525_listings', JSON.stringify(listings));
+      }
+    } catch(e) {}
+    updateListingBar();
+  }
   updateProgress();
 }
 
 function loadFormData() {
   let data = null;
-  try { data = JSON.parse(sessionStorage.getItem('cvr525_data')); } catch(e) {}
-  if (window._formData) data = window._formData;
+  // Try localStorage first, then sessionStorage for backward compat
+  try { data = JSON.parse(localStorage.getItem('cvr525_current')); } catch(e) {}
+  if (!data) { try { data = JSON.parse(sessionStorage.getItem('cvr525_data')); } catch(e) {} }
   if (!data) return;
 
+  applyFormData(data);
+  window.CVR525_DATA = data;
+  window.CVR525_LISTING_NAME = getListingName();
+
+  // Check if this matches a saved listing
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    const lastId = localStorage.getItem('cvr525_lastListingId');
+    if (lastId && listings[lastId]) {
+      currentListingId = lastId;
+      updateListingBar();
+    }
+  } catch(e) {}
+}
+
+function applyFormData(data) {
   for (const [name, value] of Object.entries(data)) {
     const el = document.querySelector(`[name="${name}"]`);
     if (!el) continue;
@@ -2306,37 +2423,230 @@ function clearForm() {
     if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
     else el.value = '';
   });
+  try { localStorage.removeItem('cvr525_current'); } catch(e) {}
   try { sessionStorage.removeItem('cvr525_data'); } catch(e) {}
-  window._formData = {};
+  currentListingId = null;
+  try { localStorage.removeItem('cvr525_lastListingId'); } catch(e) {}
+  window.CVR525_DATA = {};
+  updateListingBar();
   updateProgress();
   showToast('Form cleared');
 }
 
+// ======================== MULTI-LISTING MANAGEMENT ========================
+function openListingsPanel() {
+  document.getElementById('listingsModal').classList.add('active');
+  renderListingsList();
+}
+function closeListingsPanel() {
+  document.getElementById('listingsModal').classList.remove('active');
+}
+
+function saveCurrentListing() {
+  const data = getFormData();
+  const name = getListingName();
+  const id = currentListingId || 'listing_' + Date.now();
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    listings[id] = {
+      name: name,
+      data: data,
+      created: listings[id] ? listings[id].created : new Date().toISOString(),
+      updated: new Date().toISOString()
+    };
+    localStorage.setItem('cvr525_listings', JSON.stringify(listings));
+    currentListingId = id;
+    localStorage.setItem('cvr525_lastListingId', id);
+    updateListingBar();
+    renderListingsList();
+    showToast('Listing saved: ' + name);
+  } catch(e) {
+    showToast('Error saving listing');
+  }
+}
+
+function loadListing(id) {
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    if (!listings[id]) return;
+    // Clear form first
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+      else el.value = '';
+    });
+    applyFormData(listings[id].data);
+    localStorage.setItem('cvr525_current', JSON.stringify(listings[id].data));
+    currentListingId = id;
+    localStorage.setItem('cvr525_lastListingId', id);
+    window.CVR525_DATA = listings[id].data;
+    updateListingBar();
+    updateProgress();
+    closeListingsPanel();
+    scrollToTop();
+    showToast('Loaded: ' + listings[id].name);
+  } catch(e) {
+    showToast('Error loading listing');
+  }
+}
+
+function deleteListing(id, evt) {
+  evt.stopPropagation();
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    const name = listings[id] ? listings[id].name : 'this listing';
+    if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
+    delete listings[id];
+    localStorage.setItem('cvr525_listings', JSON.stringify(listings));
+    if (currentListingId === id) {
+      currentListingId = null;
+      localStorage.removeItem('cvr525_lastListingId');
+      updateListingBar();
+    }
+    renderListingsList();
+    showToast('Deleted: ' + name);
+  } catch(e) {}
+}
+
+function exportListing(id, evt) {
+  evt.stopPropagation();
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    if (!listings[id]) return;
+    const exportData = { ...listings[id].data };
+    // Also format checkboxes as grouped arrays for cleaner output
+    const grouped = {};
+    for (const [key, val] of Object.entries(exportData)) {
+      if (val === true) {
+        const parts = key.split('_');
+        if (parts.length > 1 && key.includes('-checks_')) {
+          const group = key.substring(0, key.lastIndexOf('_'));
+          const cbEl = document.querySelector(`[name="${key}"]`);
+          if (cbEl) {
+            if (!grouped[group]) grouped[group] = [];
+            grouped[group].push(cbEl.value);
+            delete exportData[key];
+          }
+        }
+      } else if (val === false) {
+        delete exportData[key];
+      }
+    }
+    Object.assign(exportData, grouped);
+
+    const safeName = listings[id].name.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CVR525_${safeName}_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Exported: ' + listings[id].name);
+  } catch(e) {}
+}
+
+function importListingJSON() {
+  document.getElementById('importJsonInput').click();
+}
+
+function handleImportJSON(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      // Clear and apply
+      document.querySelectorAll('input, select, textarea').forEach(el => {
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+        else el.value = '';
+      });
+      applyFormData(data);
+      localStorage.setItem('cvr525_current', JSON.stringify(getFormData()));
+      currentListingId = null;
+      updateListingBar();
+      updateProgress();
+      saveFormData();
+      closeListingsPanel();
+      showToast('Imported from ' + file.name);
+    } catch(err) {
+      showToast('Invalid JSON file');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderListingsList() {
+  const container = document.getElementById('listingsList');
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    const keys = Object.keys(listings).sort((a,b) => {
+      return new Date(listings[b].updated) - new Date(listings[a].updated);
+    });
+    if (keys.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:12px;text-align:center">No saved listings yet. Fill out the form and tap "Save Current as New Listing".</p>';
+      return;
+    }
+    container.innerHTML = keys.map(id => {
+      const l = listings[id];
+      const isActive = id === currentListingId;
+      const updated = new Date(l.updated).toLocaleDateString('en-US', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+      return `<div class="listing-card${isActive?' active':''}" onclick="loadListing('${id}')">
+        <div class="lc-info">
+          <div class="lc-title">${l.name}</div>
+          <div class="lc-meta">${isActive?'Currently loaded  ':''}Updated ${updated}</div>
+        </div>
+        <div class="lc-actions">
+          <button class="lc-btn" onclick="exportListing('${id}',event)" title="Export JSON">Export</button>
+          <button class="lc-btn del" onclick="deleteListing('${id}',event)" title="Delete">Del</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    container.innerHTML = '<p style="color:var(--accent)">Error reading saved listings</p>';
+  }
+}
+
+function updateListingBar() {
+  const bar = document.getElementById('currentListingBar');
+  if (currentListingId) {
+    const name = getListingName();
+    document.getElementById('currentListingName').textContent = name;
+    document.getElementById('currentListingSaved').textContent = 'Saved to browser';
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
 // ======================== EXPORT ========================
 function exportJSON() {
-  const data = {};
-  document.querySelectorAll('input, select, textarea').forEach(el => {
-    if (el.type === 'checkbox') {
-      if (el.checked) {
-        const group = el.name.split('_').slice(0, -1).join('_');
-        if (!data[group]) data[group] = [];
-        data[group].push(el.value);
+  const data = getFormData();
+  // Format checkboxes as grouped arrays
+  const exportData = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (val === true) {
+      if (key.includes('-checks_')) {
+        const group = key.substring(0, key.lastIndexOf('_'));
+        const cbEl = document.querySelector(`[name="${key}"]`);
+        if (cbEl) {
+          if (!exportData[group]) exportData[group] = [];
+          exportData[group].push(cbEl.value);
+        }
       }
-    } else if (el.type === 'radio') {
-      if (el.checked) data[el.name] = el.value;
-    } else {
-      if (el.value) data[el.name] = el.value;
+    } else if (val !== false) {
+      exportData[key] = val;
     }
-  });
+  }
 
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const safeName = getListingName().replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `cvr525_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `CVR525_${safeName}_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('JSON exported');
+  showToast('JSON exported: ' + getListingName());
 }
 
 // ======================== PROGRESS ========================
