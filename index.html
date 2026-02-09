@@ -393,6 +393,91 @@ body {
 }
 .toast.show { opacity: 1; }
 
+/* Upload Modal */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+  position: relative;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--primary-light);
+  background: rgba(42,82,152,0.05);
+}
+.upload-zone input[type="file"] {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.upload-zone .icon { font-size: 32px; margin-bottom: 8px; }
+.upload-zone .label { font-size: 14px; font-weight: 600; color: var(--text); }
+.upload-zone .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.upload-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+.upload-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+.upload-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.upload-panel { display: none; }
+.upload-panel.active { display: block; }
+.upload-status {
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 12px;
+  display: none;
+}
+.upload-status.loading {
+  display: block;
+  background: #ebf8ff;
+  color: #2b6cb0;
+}
+.upload-status.success {
+  display: block;
+  background: #f0fff4;
+  color: #276749;
+}
+.upload-status.error {
+  display: block;
+  background: #fff5f5;
+  color: #c53030;
+}
+.filled-summary {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.filled-summary .item {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+.filled-summary .item .fname { color: var(--text-muted); }
+.filled-summary .item .fval { font-weight: 600; max-width: 60%; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Bottom nav */
 .bottom-nav {
   position: fixed;
@@ -444,6 +529,10 @@ body {
   <h1>CVR 525 Residential Data Input</h1>
   <div class="subtitle">eXp Realty - Central Virginia Regional MLS</div>
   <div class="header-actions">
+    <button class="header-btn" onclick="openUploadModal()" style="background:rgba(56,161,105,0.4);border-color:rgba(56,161,105,0.6)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload Data
+    </button>
     <button class="header-btn" onclick="openTranscript()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
       Import Transcript
@@ -474,6 +563,37 @@ body {
     <div class="btn-row">
       <button class="btn btn-cancel" onclick="closeTranscript()">Cancel</button>
       <button class="btn btn-primary" onclick="parseTranscript()">Parse & Fill</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Property Data Modal -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <h2>Upload Property Data</h2>
+    <p class="parse-instructions">
+      Upload a 360 Property View PDF, tax record PDF, photo/screenshot, or paste text. The parser will auto-fill matching fields.
+    </p>
+    <div class="upload-tabs">
+      <button class="upload-tab active" onclick="switchUploadTab('file')">PDF / Photo</button>
+      <button class="upload-tab" onclick="switchUploadTab('text')">Paste Text</button>
+    </div>
+    <div class="upload-panel active" id="upload-panel-file">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="uploadFileInput" accept=".pdf,image/*" onchange="handleUploadFile(this.files[0])">
+        <div class="icon">&#128196;</div>
+        <div class="label">Tap to select or drag a file here</div>
+        <div class="hint">Accepts PDF, JPG, PNG, HEIC</div>
+      </div>
+    </div>
+    <div class="upload-panel" id="upload-panel-text">
+      <textarea id="uploadPasteText" placeholder="Paste property data text here (from MLS, tax website, email, etc.)..." style="width:100%;min-height:180px;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="upload-status" id="uploadStatus"></div>
+    <div class="filled-summary" id="filledSummary"></div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeUploadModal()">Close</button>
+      <button class="btn btn-primary" id="parseTextBtn" onclick="parseUploadedText()" style="display:none">Parse & Fill</button>
     </div>
   </div>
 </div>
@@ -1352,6 +1472,701 @@ function startMic(btn, fieldName) {
   currentMicBtn = btn;
   currentRecognition = recognition;
   recognition.start();
+}
+
+// ======================== PROPERTY DATA UPLOAD ========================
+let pdfJsLoaded = false;
+let tesseractLoaded = false;
+
+function openUploadModal() {
+  document.getElementById('uploadModal').classList.add('active');
+  document.getElementById('uploadStatus').className = 'upload-status';
+  document.getElementById('uploadStatus').textContent = '';
+  document.getElementById('filledSummary').innerHTML = '';
+  document.getElementById('uploadFileInput').value = '';
+  document.getElementById('uploadPasteText').value = '';
+  switchUploadTab('file');
+}
+function closeUploadModal() {
+  document.getElementById('uploadModal').classList.remove('active');
+}
+function switchUploadTab(tab) {
+  document.querySelectorAll('.upload-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.upload-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.upload-tab[onclick*="${tab}"]`).classList.add('active');
+  document.getElementById('upload-panel-' + tab).classList.add('active');
+  document.getElementById('parseTextBtn').style.display = tab === 'text' ? '' : 'none';
+}
+
+function setUploadStatus(type, msg) {
+  const el = document.getElementById('uploadStatus');
+  el.className = 'upload-status ' + type;
+  el.innerHTML = msg;
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function ensurePdfJs() {
+  if (pdfJsLoaded) return;
+  setUploadStatus('loading', 'Loading PDF reader...');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfJsLoaded = true;
+}
+
+async function ensureTesseract() {
+  if (tesseractLoaded) return;
+  setUploadStatus('loading', 'Loading image reader (first time may take a moment)...');
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  tesseractLoaded = true;
+}
+
+async function handleUploadFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  try {
+    let text = '';
+    if (ext === 'pdf') {
+      await ensurePdfJs();
+      setUploadStatus('loading', 'Extracting text from PDF...');
+      text = await extractPdfText(file);
+    } else if (['jpg','jpeg','png','heic','heif','webp','bmp','tiff','tif','gif'].includes(ext)) {
+      await ensureTesseract();
+      setUploadStatus('loading', 'Reading text from image (this may take 15-30 seconds)...');
+      text = await ocrImage(file);
+    } else {
+      setUploadStatus('error', 'Unsupported file type. Use PDF or image files.');
+      return;
+    }
+    if (!text || text.trim().length < 20) {
+      setUploadStatus('error', 'Could not extract enough text from this file. Try pasting the text manually.');
+      return;
+    }
+    const result = parsePropertyData(text);
+    showParseResults(result);
+  } catch (e) {
+    console.error('Upload error:', e);
+    setUploadStatus('error', 'Error processing file: ' + e.message);
+  }
+}
+
+async function extractPdfText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const lines = [];
+    let lastY = null;
+    let currentLine = '';
+    for (const item of content.items) {
+      if (lastY !== null && Math.abs(item.transform[5] - lastY) > 3) {
+        lines.push(currentLine.trim());
+        currentLine = '';
+      }
+      currentLine += (currentLine ? '  ' : '') + item.str;
+      lastY = item.transform[5];
+    }
+    if (currentLine.trim()) lines.push(currentLine.trim());
+    fullText += lines.join('\n') + '\n---PAGE---\n';
+  }
+  return fullText;
+}
+
+async function ocrImage(file) {
+  const worker = await Tesseract.createWorker('eng');
+  const { data: { text } } = await worker.recognize(file);
+  await worker.terminate();
+  return text;
+}
+
+function parseUploadedText() {
+  const text = document.getElementById('uploadPasteText').value;
+  if (!text.trim()) { setUploadStatus('error', 'Please paste some text first.'); return; }
+  const result = parsePropertyData(text);
+  showParseResults(result);
+}
+
+function showParseResults(result) {
+  if (result.filled === 0) {
+    setUploadStatus('error', 'No matching fields found. The text format may not be recognized.');
+    return;
+  }
+  setUploadStatus('success', `Filled <strong>${result.filled} fields</strong> and checked <strong>${result.checked} checkboxes</strong> from the uploaded data.`);
+  const summary = document.getElementById('filledSummary');
+  summary.innerHTML = result.details.map(d =>
+    `<div class="item"><span class="fname">${d.label}</span><span class="fval">${d.value}</span></div>`
+  ).join('');
+  saveFormData();
+  updateProgress();
+}
+
+// ======================== PROPERTY DATA PARSER ========================
+function preprocessPdfText(rawText) {
+  // PDF extraction often puts labels and values on separate lines.
+  // Join "Label:" lines with the value on the next line.
+  const lines = rawText.split('\n');
+  const result = [];
+  const skipHeaders = /^(Room|Dim|Lvl Desc|Bath Desc|FBath|HBath|Features|Square Feet|General Information|Listing Information|Showing Instructions|Agent\/Office|Owner Information|Fee Information|Mortgage|Tax Information|Assessment|Characteristics|Building Features|Location Information|Estimated Value|Sold\s*Information)/;
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trimEnd();
+    if (!line.trim()) { result.push(line); continue; }
+    const trimmed = line.trim();
+    if (trimmed.endsWith(':') && i + 1 < lines.length) {
+      const nextTrimmed = lines[i+1].trim();
+      if (nextTrimmed && !nextTrimmed.match(skipHeaders) && !nextTrimmed.endsWith(':')) {
+        line = trimmed + ' ' + nextTrimmed;
+        i++;
+        // Handle multi-line continuations like "Single Family" + "Residence"
+        if (i + 1 < lines.length) {
+          const nn = lines[i+1].trim();
+          if (nn && (nn === 'Residence' || nn.startsWith('(') || nn === 'least once)')) {
+            line += ' ' + nn; i++;
+          }
+        }
+      }
+    }
+    result.push(line);
+  }
+  return result.join('\n');
+}
+
+function parsePropertyData(rawText) {
+  const text = preprocessPdfText(rawText);
+  const textLower = text.toLowerCase();
+  let filled = 0;
+  let checked = 0;
+  const details = [];
+
+  function setField(name, value, label) {
+    if (!value || !value.toString().trim()) return false;
+    const el = document.querySelector(`[name="${name}"]`);
+    if (!el) return false;
+    const cleanVal = value.toString().trim();
+    if (el.tagName === 'SELECT') {
+      const opts = Array.from(el.options);
+      const match = opts.find(o => o.value.toLowerCase() === cleanVal.toLowerCase()) ||
+                    opts.find(o => o.value.toLowerCase().includes(cleanVal.toLowerCase())) ||
+                    opts.find(o => cleanVal.toLowerCase().includes(o.value.toLowerCase()));
+      if (match) { el.value = match.value; filled++; details.push({label: label||name, value: match.value}); return true; }
+      return false;
+    }
+    el.value = cleanVal;
+    el.dispatchEvent(new Event('input'));
+    filled++;
+    details.push({label: label||name, value: cleanVal});
+    return true;
+  }
+
+  function setRadioField(name, value, label) {
+    if (!value) return false;
+    const cleanVal = value.toString().trim();
+    const radios = document.querySelectorAll(`input[name="${name}"]`);
+    for (const r of radios) {
+      if (r.value.toLowerCase() === cleanVal.toLowerCase() || cleanVal.toLowerCase().includes(r.value.toLowerCase())) {
+        r.checked = true; filled++; details.push({label: label||name, value: r.value}); return true;
+      }
+    }
+    return false;
+  }
+
+  function checkCheckbox(groupId, value) {
+    const items = checkboxData[groupId] || [];
+    const valLower = value.toLowerCase().trim();
+    for (const item of items) {
+      if (item.toLowerCase() === valLower || valLower.includes(item.toLowerCase()) || item.toLowerCase().includes(valLower)) {
+        const safeName = groupId + '_' + item.replace(/[^a-zA-Z0-9]/g, '_');
+        const cb = document.querySelector(`[name="${safeName}"]`);
+        if (cb && !cb.checked) { cb.checked = true; checked++; details.push({label: groupId.replace('-checks',''), value: item}); }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function checkMultipleCheckboxes(groupId, csvValue) {
+    if (!csvValue) return;
+    const parts = csvValue.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    for (const part of parts) { checkCheckbox(groupId, part); }
+  }
+
+  // --- Extract using regex patterns (handles "Label: Value" and "Label  Value" formats) ---
+  function extract(pattern, flags) {
+    const re = new RegExp(pattern, flags || 'i');
+    const m = text.match(re);
+    return m ? (m[1] || '').trim() : null;
+  }
+
+  // ========== ADDRESS PARSING ==========
+  // Try "Address: 1001 Butternut DR" format
+  let addr = extract('Address:\\s*(.+?)(?:\\n|$)');
+  if (addr) {
+    const addrParts = addr.match(/^(\d+)\s+(.+?)(?:\s+(Dr|Drive|St|Street|Ave|Avenue|Blvd|Boulevard|Ct|Court|Pl|Place|Ln|Lane|Way|Rd|Road|Cir|Circle|Ter|Terrace|Trl|Trail|Pike|Hwy|Highway))?$/i);
+    if (addrParts) {
+      setField('houseNumber', addrParts[1], 'House Number');
+      setField('streetNum', addrParts[1], 'Street #');
+      const streetWithSuffix = addrParts[2] + (addrParts[3] ? ' ' + addrParts[3] : '');
+      setField('streetNameTax', streetWithSuffix, 'Street Name (Tax)');
+      // Split street name and suffix for location section
+      const nameParts = streetWithSuffix.match(/^(.+?)\s+(Dr|Drive|St|Street|Ave|Avenue|Blvd|Boulevard|Ct|Court|Pl|Place|Ln|Lane|Way|Rd|Road|Cir|Circle|Ter|Terrace|Trl|Trail|Pike|Hwy|Highway)$/i);
+      if (nameParts) {
+        setField('streetName', nameParts[1], 'Street Name');
+        setField('streetSuffix', nameParts[2], 'Street Suffix');
+      } else {
+        setField('streetName', streetWithSuffix, 'Street Name');
+      }
+    }
+  }
+  // Also try header format "1001 Butternut Dr, Prince George, VA 23860-7659"
+  const headerAddr = text.match(/(\d+)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*)\s+(Dr|Drive|St|Street|Ave|Avenue|Blvd|Boulevard|Ct|Court|Pl|Place|Ln|Lane|Way|Rd|Road|Cir|Circle),\s*([A-Za-z\s]+),\s*VA\s*(\d{5})(?:-(\d{4}))?/i);
+  if (headerAddr && !addr) {
+    setField('houseNumber', headerAddr[1], 'House Number');
+    setField('streetNum', headerAddr[1], 'Street #');
+    setField('streetName', headerAddr[2], 'Street Name');
+    setField('streetSuffix', headerAddr[3], 'Street Suffix');
+    setField('streetNameTax', headerAddr[2] + ' ' + headerAddr[3], 'Street Name (Tax)');
+  }
+
+  // ========== CORE PROPERTY FIELDS ==========
+  const cnCty = extract('Cn\\/Cty:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (cnCty) { setField('county', cnCty, 'County'); setField('countyCity', cnCty, 'County/City'); }
+
+  const pid = extract('PID:\\s*([\\w\\-\\.]+)');
+  if (pid) { setField('pid', pid, 'PID'); setField('pidListing', pid, 'PID (Listing)'); }
+
+  const propType = extract('Type:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (propType) {
+    if (propType.toLowerCase().includes('single family')) setRadioField('propertyType', 'Single Family', 'Property Type');
+    else if (propType.toLowerCase().includes('townhouse')) setRadioField('propertyType', 'Townhouse', 'Property Type');
+    else if (propType.toLowerCase().includes('condo')) setRadioField('propertyType', 'Condo', 'Property Type');
+    else if (propType.toLowerCase().includes('cooperative')) setRadioField('propertyType', 'Cooperative', 'Property Type');
+  }
+
+  const areaVal = extract('Area:\\s*(\\d+)');
+  if (areaVal) setField('area', areaVal, 'Area');
+
+  const attached = extract('Attached:\\s*(Yes|No)', 'i');
+  if (attached) setField('attached', attached, 'Attached');
+
+  const listPrice = extract('List Price:\\s*\\$?([\\d,]+)');
+  if (listPrice) setField('listPrice', listPrice, 'List Price');
+
+  const delayedShow = extract('Delayed Show:\\s*(Yes|No)', 'i');
+  if (delayedShow) setField('delayedShow', delayedShow.charAt(0).toUpperCase(), 'Delayed Show');
+
+  const noShowUntil = extract('No Show Until:\\s*(\\d{2}\\/\\d{2}\\/\\d{4})');
+  if (noShowUntil) {
+    const parts = noShowUntil.split('/');
+    if (parts.length === 3) setField('noShowUntil', parts[2]+'-'+parts[0]+'-'+parts[1], 'No Show Until');
+  }
+
+  // ========== LOCATION ==========
+  const zip = extract('Zip:\\s*(\\d{5})(?:-(\\d{4}))?');
+  if (zip) {
+    setField('zipCode', zip, 'Zip Code');
+    const zip4 = text.match(/Zip:\s*\d{5}-(\d{4})/);
+    if (zip4) setField('zip4', zip4[1], 'Zip+4');
+  }
+
+  const po = extract('P\\.?O\\.?:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (po) setField('postOffice', po, 'Post Office');
+
+  setField('state', 'VA', 'State');
+
+  const newResale = extract('New\\/Resale:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (newResale) {
+    if (newResale.toLowerCase().includes('resale')) setRadioField('newResale', 'Resale', 'New/Resale');
+    else if (newResale.toLowerCase().includes('new')) setRadioField('newResale', 'New', 'New/Resale');
+  }
+
+  const subdiv = extract('Subdiv:\\s*(.+?)(?:\\s{2,}|\\n|$)') || extract('Subdivision:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (subdiv) setField('subdivision', subdiv, 'Subdivision');
+
+  const yrBlt = extract('Yr Blt:\\s*(\\d{4})') || extract('Year Built:\\s*(\\d{4})');
+  if (yrBlt) setField('yearBuilt', yrBlt, 'Year Built');
+
+  const yrBltDesc = extract('Yr Blt:\\s*\\d{4}\\/(.+?)(?:\\s{2,}|\\n|$)');
+  if (yrBltDesc) setField('yearBuiltDesc', yrBltDesc, 'Year Built Desc');
+
+  const rms = extract('Rm(?:n?s|ooms?):\\s*(\\d+)') || extract('Total Rooms:\\s*(\\d+)');
+  if (rms) setField('rooms', rms, 'Rooms');
+
+  const bdrms = extract('Bdrms:\\s*(\\d+)') || extract('Bedrooms:\\s*(\\d+)');
+  if (bdrms) setField('bedrooms', bdrms, 'Bedrooms');
+
+  const lvls = extract('Lvls:\\s*([\\d\\.]+)') || extract('Stories:\\s*([\\d\\.]+)');
+  if (lvls) setField('levels', lvls, 'Levels');
+
+  const lotVal = extract('\\bLot:\\s*(\\d+)');
+  if (lotVal) setField('lot', lotVal, 'Lot');
+
+  // Square footage
+  const aboveGrade = extract('Above Grade Finished Area\\s*([\\d,]+)') || extract('Above Gnd Sq Ft:\\s*([\\d,]+)') || extract('Building Sq Ft:\\s*([\\d,]+)');
+  if (aboveGrade) setField('aboveGradeFinSqf', aboveGrade.replace(/,/g,''), 'Above Grade Fin SQF');
+
+  // SqFt Source - check for various formats
+  const sqftSrc = extract('SqFt Source\\s*(.+?)(?:\\n|$)') || extract('Sq ?Ft Source:\\s*(.+?)(?:\\n|$)');
+  if (sqftSrc) {
+    const srcMap = {'per tax':'Per Tax','per appraiser':'Per Appraiser','per architect':'Per Architect','per builder':'Per Builder','per owner':'Per Owner','other':'Other'};
+    const match = srcMap[sqftSrc.toLowerCase().trim()];
+    if (match) setRadioField('sqftSource', match, 'SqFt Source');
+  } else if (textLower.includes('sqft source') && textLower.includes('per tax')) {
+    setRadioField('sqftSource', 'Per Tax', 'SqFt Source');
+  }
+
+  // Schools
+  const elmSchool = extract('Elm(?:entary)? School:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (elmSchool) setField('elementarySchool', elmSchool, 'Elementary School');
+
+  const midSchool = extract('Mid(?:dle)? School:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (midSchool) setField('middleSchool', midSchool, 'Middle School');
+
+  const highSchool = extract('High School:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (highSchool) setField('highSchool', highSchool, 'High School');
+
+  const directions = extract('Directions?:?\\s*(.+?)(?:\\n|$)');
+  if (directions) setField('directions', directions, 'Directions');
+
+  // ========== ROOM DATA ==========
+  // Room data in PDFs often spans multiple lines: "Room Name\nDim\nLvl Desc"
+  const roomNames = [
+    { name: 'Primary Bedroom', key: 'Primary_Bedroom' },
+    { name: 'Bedroom 2', key: 'Bedroom_2' },
+    { name: 'Bedroom 3', key: 'Bedroom_3' },
+    { name: 'Bedroom 4', key: 'Bedroom_4' },
+    { name: 'Bedroom 5', key: 'Bedroom_5' },
+    { name: 'Dining Room', key: 'Dining_Room' },
+    { name: 'Family Room', key: 'Family_Room' },
+    { name: 'Living Room', key: 'Living_Room' },
+    { name: 'Kitchen', key: 'Kitchen' },
+    { name: 'Great Room', key: 'Great_Room' },
+    { name: 'Foyer', key: 'Foyer' },
+    { name: 'Laundry-Utility Rm', key: 'Laundry_Utility_Rm' },
+    { name: 'Office - Study', key: 'Office___Study' },
+    { name: 'Rec Room', key: 'Rec_Room' },
+    { name: 'Florida Room', key: 'Florida_Room' },
+  ];
+  const textLines = text.split('\n').map(l => l.trim());
+  for (const room of roomNames) {
+    for (let li = 0; li < textLines.length; li++) {
+      // Match room on single line: "Bedroom 2  10.0 x 9.0  1 carpet"
+      const singleLine = new RegExp('^' + room.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(\\d+\\.?\\d*)\\s*x\\s*(\\d+\\.?\\d*)\\s+(\\d+)\\s*(.*?)$', 'i');
+      const slm = textLines[li].match(singleLine);
+      if (slm) {
+        setField('room_' + room.key + '_length', slm[1], room.name + ' Length');
+        setField('room_' + room.key + '_width', slm[2], room.name + ' Width');
+        setField('room_' + room.key + '_level', slm[3], room.name + ' Level');
+        if (slm[4]) setField('room_' + room.key + '_desc', slm[4], room.name + ' Desc');
+        break;
+      }
+      // Match room on separate lines: "Bedroom 2\n10.0 x 9.0\n1 carpet"
+      if (textLines[li] === room.name || textLines[li].startsWith(room.name + ' ')) {
+        // Check next line for dimensions or just level
+        if (li + 1 < textLines.length) {
+          const dimMatch = textLines[li + 1].match(/^(\d+\.?\d*)\s*x\s*(\d+\.?\d*)$/);
+          if (dimMatch) {
+            setField('room_' + room.key + '_length', dimMatch[1], room.name + ' Length');
+            setField('room_' + room.key + '_width', dimMatch[2], room.name + ' Width');
+            // Check line after for level/desc
+            if (li + 2 < textLines.length) {
+              const lvlMatch = textLines[li + 2].match(/^(\d+)\s*(.*?)$/);
+              if (lvlMatch) {
+                setField('room_' + room.key + '_level', lvlMatch[1], room.name + ' Level');
+                if (lvlMatch[2]) setField('room_' + room.key + '_desc', lvlMatch[2], room.name + ' Desc');
+              }
+            }
+            break;
+          }
+          // Just level, no dimensions (e.g., Kitchen  1)
+          const justLvl = textLines[li + 1].match(/^(\d+)\s*(.*?)$/);
+          if (justLvl && !textLines[li + 1].match(/^\d+\.\d+/)) {
+            setField('room_' + room.key + '_level', justLvl[1], room.name + ' Level');
+            if (justLvl[2]) setField('room_' + room.key + '_desc', justLvl[2], room.name + ' Desc');
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // ========== BATH DATA ==========
+  // Handle both single-line and multi-line bath data
+  // Single line: "Lvl 1: Tub & Shower  2  0" or multi-line: "Lvl 1:\nTub & Shower\n2\n0"
+  const bathLevels = [
+    { label: 'Bsmt', descField: 'bathDescBasement', fullField: 'fullBathBasement', halfField: 'halfBathBasement' },
+    { label: 'Lvl 1', descField: 'bathDescLevel1', fullField: 'fullBathLevel1', halfField: 'halfBathLevel1' },
+    { label: 'Lvl 2', descField: 'bathDescLevel2', fullField: 'fullBathLevel2', halfField: 'halfBathLevel2' },
+    { label: 'Lvl 3', descField: 'bathDescLevel3', fullField: 'fullBathLevel3', halfField: 'halfBathLevel3' },
+    { label: 'Lvl 4', descField: 'bathDescLevel4', fullField: 'fullBathLevel4', halfField: 'halfBathLevel4' },
+  ];
+  for (const bath of bathLevels) {
+    for (let li = 0; li < textLines.length; li++) {
+      // Single line: "Lvl 1: Tub & Shower  2  0"
+      const slBath = textLines[li].match(new RegExp(bath.label + ':\\s*(.+?)\\s+(\\d+)\\s+(\\d+)\\s*$', 'i'));
+      if (slBath) {
+        if (slBath[1] && slBath[1] !== '0') setField(bath.descField, slBath[1], bath.label + ' Bath Desc');
+        setField(bath.fullField, slBath[2], bath.label + ' Full Bath');
+        setField(bath.halfField, slBath[3], bath.label + ' Half Bath');
+        break;
+      }
+      // Multi-line: "Lvl 1:\nTub & Shower\n2\n0"
+      if (textLines[li].match(new RegExp('^' + bath.label + ':?$', 'i'))) {
+        if (li + 1 < textLines.length) {
+          const desc = textLines[li + 1];
+          if (desc && (desc.includes('Tub') || desc.includes('Shower') || desc.match(/^\d+$/))) {
+            if (!desc.match(/^\d+$/)) {
+              setField(bath.descField, desc, bath.label + ' Bath Desc');
+              if (li + 2 < textLines.length && textLines[li + 2].match(/^\d+$/)) {
+                setField(bath.fullField, textLines[li + 2], bath.label + ' Full Bath');
+                if (li + 3 < textLines.length && textLines[li + 3].match(/^\d+$/))
+                  setField(bath.halfField, textLines[li + 3], bath.label + ' Half Bath');
+              }
+            } else {
+              setField(bath.fullField, desc, bath.label + ' Full Bath');
+              if (li + 2 < textLines.length && textLines[li + 2].match(/^\d+$/))
+                setField(bath.halfField, textLines[li + 2], bath.label + ' Half Bath');
+            }
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  // ========== FEATURES (Checkbox matching) ==========
+  const featurePatterns = [
+    { label: 'Style:', group: 'style-checks' },
+    { label: 'Structure:', group: 'structure-checks' },
+    { label: 'Siding:', group: 'siding-checks' },
+    { label: 'Roof:', group: 'roof-checks' },
+    { label: 'Flooring:', group: 'flooring-checks' },
+    { label: 'Attic:', group: 'attic-checks' },
+    { label: 'Heating:', group: 'heating-checks' },
+    { label: 'Heat Fuel:', group: 'heatfuel-checks' },
+    { label: 'Cooling:', group: 'cooling-checks' },
+    { label: 'Water Heater:', group: 'waterheater-checks' },
+    { label: 'Interior:', group: 'interior-checks' },
+    { label: 'Exterior:', group: 'exterior-checks' },
+    { label: 'Water:', group: 'water-checks' },
+    { label: 'Sewer/Septic:', group: 'sewer-checks' },
+    { label: 'Porch:', group: 'porch-checks' },
+    { label: 'Wall Type:', group: 'walltype-checks' },
+    { label: 'Current Internet:', group: 'internet-checks' },
+    { label: 'Comm Amenities:', group: 'community-checks' },
+    { label: 'Appl/Equip:', group: 'appliance-checks' },
+    { label: 'Restrictions:', group: 'restrictions-checks' },
+    { label: 'Lot Desc:', group: 'lotdesc-checks' },
+  ];
+  for (const fp of featurePatterns) {
+    const regex = new RegExp(fp.label.replace(/[\/\\]/g, '[\\/\\\\]?') + '\\s*(.+?)(?:\\n|$)', 'i');
+    const m = text.match(regex);
+    if (m && m[1].trim()) {
+      checkMultipleCheckboxes(fp.group, m[1].trim());
+    }
+  }
+
+  // Parking (special: combined with Garage line)
+  const parking = extract('Parking:\\s*(.+?)(?:\\n|$)');
+  if (parking) checkMultipleCheckboxes('parking-checks', parking);
+
+  // Garage
+  const garage = extract('Garage:\\s*(.+?)(?:\\n|$)');
+  if (garage) {
+    if (garage.toLowerCase().includes('yes') || garage.match(/\d/)) {
+      setField('garageYN', 'Yes', 'Garage Y/N');
+      const garCars = garage.match(/(\d+)/);
+      if (garCars) setField('garageCars', garCars[1], 'Garage Cars');
+      // Parse garage features after the count
+      const garFeatures = garage.replace(/^Yes\/\d+\/?/, '').trim();
+      if (garFeatures) checkMultipleCheckboxes('garage-checks', garFeatures);
+    } else if (garage.toLowerCase().includes('no')) {
+      setField('garageYN', 'No', 'Garage Y/N');
+    }
+  }
+
+  // Basement
+  const basement = extract('Basement\\/Found:\\s*(.+?)(?:\\n|$)') || extract('Basement:\\s*(.+?)(?:\\n|$)');
+  if (basement) {
+    if (basement.toLowerCase() === 'no' || basement.toLowerCase() === 'none') {
+      setField('basementYN', 'No', 'Basement Y/N');
+    } else {
+      setField('basementYN', 'Yes', 'Basement Y/N');
+      checkMultipleCheckboxes('basement-checks', basement);
+    }
+  }
+
+  // Fenced
+  const fenced = extract('Fenced:\\s*(.+?)(?:\\n|$)');
+  if (fenced) {
+    if (fenced.toLowerCase() === 'no') setField('fencedYN', 'No', 'Fenced Y/N');
+    else { setField('fencedYN', 'Yes', 'Fenced Y/N'); checkMultipleCheckboxes('fenced-checks', fenced); }
+  }
+
+  // Pool
+  const pool = extract('Pool\\/Desc:\\s*(.+?)(?:\\n|$)') || extract('Pool:\\s*(.+?)(?:\\n|$)');
+  if (pool) {
+    if (pool.toLowerCase() === 'no' || pool.toLowerCase() === 'none') setField('poolYN', 'No', 'Pool Y/N');
+    else { setField('poolYN', 'Yes', 'Pool Y/N'); checkMultipleCheckboxes('pool-checks', pool); }
+  }
+
+  // Golf
+  const golf = extract('Golf Frontage:\\s*(Yes|No)', 'i');
+  if (golf) setRadioField('golfFrontage', golf, 'Golf Frontage');
+
+  // ========== GENERAL INFO ==========
+  const waterfront = extract('Waterfront:\\s*(Yes|No)', 'i');
+  if (waterfront) setField('waterfrontYN', waterfront, 'Waterfront Y/N');
+
+  const acres = extract('Acres:\\s*([\\d\\.]+)') || extract('Lot Acres:\\s*([\\d\\.]+)');
+  if (acres) setField('acres', acres, 'Acres');
+
+  const zoning = extract('Current Zoning:\\s*(.+?)(?:\\s{2,}|\\n|$)') || extract('Zoning:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (zoning) setField('currentZoning', zoning, 'Current Zoning');
+
+  const annualTaxes = extract('Annual Taxes:\\s*\\$?([\\d,]+)') || extract('Total Tax\\s*\\$?([\\d,]+)');
+  if (annualTaxes) setField('annualTaxes', annualTaxes.replace(/,/g,''), 'Annual Taxes');
+
+  const totalAssmt = extract('Total Ass(?:e|m)t:\\s*\\$?([\\d,]+)') || extract('Assessed Value - Total\\s*\\$?([\\d,]+)');
+  if (totalAssmt) setField('assdTotal', totalAssmt.replace(/,/g,''), 'Assd Total');
+
+  const assdLand = extract('Assessed Value - Land\\s*\\$?([\\d,]+)');
+  if (assdLand) setField('assdLand', assdLand.replace(/,/g,''), 'Assd Land');
+
+  const assdImprv = extract('Assessed Value - Improved\\s*\\$?([\\d,]+)');
+  if (assdImprv) setField('assdImprv', assdImprv.replace(/,/g,''), 'Assd Imprv');
+
+  const legal = extract('Legal:\\s*(.+?)(?:\\n|$)') || extract('Legal Description:\\s*(.+?)(?:\\n|$)');
+  if (legal) setField('legal', legal.substring(0, 75), 'Legal');
+
+  const minDeposit = extract('Minimum Deposit:\\s*\\$?([\\d,]+)');
+  if (minDeposit) setField('minimumDeposit', minDeposit.replace(/,/g,''), 'Minimum Deposit');
+
+  const preQual = extract('Pre Qual Letter:\\s*(Yes|No)', 'i');
+  if (preQual) setField('preQualLetter', preQual, 'Pre Qual Letter');
+
+  const leadDisc = extract('Lead Disclosure:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (leadDisc) setField('leadDisclosure', leadDisc, 'Lead Disclosure');
+
+  const investorCap = extract('Investor Rental Cap:\\s*(Yes|No)', 'i');
+  if (investorCap) setField('investorRentalCap', investorCap, 'Investor Rental Cap');
+
+  const homeWarranty = extract('Home Warranty:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (homeWarranty && homeWarranty.toLowerCase() !== 'none') setField('homeWarranty', homeWarranty, 'Home Warranty');
+
+  // ========== HOA/FEES ==========
+  const hoa = extract('HOA\\/Condo:\\s*(Yes|No)', 'i') || extract('HOA:\\s*(Yes|No)', 'i');
+  if (hoa) setField('hoaCondo', hoa, 'HOA/Condo');
+
+  const addlHoa = extract("Add(?:'?l|itional) HOA:\\s*(Yes|No)", 'i');
+  if (addlHoa) setField('addlHoa', addlHoa, "Add'l HOA");
+
+  const memberReqd = extract('Membership Reqd:\\s*(Yes|No)', 'i');
+  if (memberReqd) setField('membershipReqd', memberReqd, 'Membership Reqd');
+
+  // ========== OWNER INFO ==========
+  const owner = extract('Owner:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (owner) {
+    setField('ownerName', owner, 'Owner Name');
+    const nameParts = owner.split(/\s+/);
+    if (nameParts.length >= 2) {
+      setField('ownerLastName', nameParts[0], 'Owner Last Name');
+      setField('ownerFirstName', nameParts.slice(1).join(' '), 'Owner First Name');
+    }
+  }
+  // Tax tab owner names
+  const ownerName1 = extract('Owner Name:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (ownerName1) setField('ownerName', ownerName1, 'Owner Name');
+  const ownerName2 = extract('Owner Name 2:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (ownerName2) setField('ownerName2', ownerName2, 'Owner Name 2');
+
+  const occupant = extract('Occupant:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (occupant) setField('occupantName', occupant, 'Occupant Name');
+
+  const ownedBy = extract('Owned By:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (ownedBy) checkMultipleCheckboxes('ownedby-checks', ownedBy);
+
+  const possession = extract('Possession:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (possession) checkMultipleCheckboxes('possession-checks', possession);
+
+  // ========== SHOWING ==========
+  const lockbox = extract('Lockbox Type:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (lockbox) setField('lockboxType', lockbox, 'Lockbox Type');
+
+  const sentriSerial = extract('Sentri Serial LB #:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (sentriSerial) setField('sentrilockSerial', sentriSerial, 'Sentrilock Serial');
+
+  const supraSerial = extract('Supra Serial LB #:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (supraSerial) setField('supraSerial', supraSerial, 'Supra Serial');
+
+  // Showing Instructions - handle "Showing Instr 1: Accompany Show, Appt. Required" format
+  const showInstr1 = extract('Showing Instr 1:\\s*(.+?)(?:\\n|$)');
+  if (showInstr1) {
+    if (showInstr1.includes('Accompany')) setField('showingInstr1', 'Accompany Show', 'Showing Instr 1');
+    else if (showInstr1.includes('Appt')) setField('showingInstr1', 'Appt. Required', 'Showing Instr 1');
+  } else {
+    if (textLower.includes('accompany show')) setField('showingInstr1', 'Accompany Show', 'Showing Instr 1');
+    else if (textLower.includes('appt. required') || textLower.includes('appt required')) setField('showingInstr1', 'Appt. Required', 'Showing Instr 1');
+  }
+
+  // Showing Instr 2 checkboxes
+  const showInstr2 = extract('Showing Instr 2:\\s*(.+?)(?:\\n|$)');
+  if (showInstr2) checkMultipleCheckboxes('showinginstr2-checks', showInstr2);
+
+  const addlShowInstr = extract('Addl Show Instr:\\s*(.+?)(?:\\n|$)');
+  if (addlShowInstr) setField('addlShwInst', addlShowInstr, 'Addl Show Instr');
+
+  // List Type
+  const listType = extract('Type:\\s*(Exclusive Right|Exclusive Agency|MLS Only)', 'i');
+  if (listType) setField('listType', listType, 'List Type');
+
+  // Disclosure
+  const disclosure = extract('Disclosure:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (disclosure) setField('disclosures', disclosure, 'Disclosures');
+
+  // Owner/Agent and Agent Related
+  const ownerAgent = extract('Owner\\/Agent:\\s*(Yes|No)', 'i');
+  if (ownerAgent) setField('ownerAgent', ownerAgent, 'Owner/Agent');
+  const agtRelated = extract('Agt Related to Seller:\\s*(Yes|No)', 'i');
+  if (agtRelated) setField('agentRelatedSeller', agtRelated, 'Agent Related to Seller');
+
+  // ========== REMARKS ==========
+  const remarks = extract('Remarks:\\s*(.+?)(?=Agent Only|Agent Comments|\\n\\n|---PAGE---)', 'is');
+  if (remarks) setField('remarks', remarks.trim().substring(0, 2048), 'Remarks');
+
+  const agentComments = extract('Agent (?:Only )?Comments?:\\s*(.+?)(?=\\n\\n|---PAGE---|Mortgage)', 'is');
+  if (agentComments) setField('agentComments', agentComments.trim().substring(0, 1000), 'Agent Comments');
+
+  // ========== ADU ==========
+  const adu = extract('ADU\\/Desc:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (adu) {
+    if (adu.toLowerCase() === 'no' || adu.toLowerCase() === 'none' || !adu.trim()) {
+      setField('aduYN', 'No', 'ADU');
+    } else {
+      setField('aduYN', 'Yes', 'ADU');
+      setField('aduDesc', adu, 'ADU Desc');
+    }
+  }
+
+  // ========== TAX TAB FIELDS ==========
+  const taxYear = extract('Tax Year\\s*(\\d{4})');
+  if (taxYear) setField('taxYear', taxYear, 'Tax Year');
+  // Fallback: use most recent assessment year
+  if (!taxYear) {
+    const assessYear = extract('Assessment Year\\s*(\\d{4})');
+    if (assessYear) setField('taxYear', assessYear, 'Tax Year');
+  }
+
+  return { filled, checked, details };
 }
 
 // ======================== TRANSCRIPT PARSER ========================
