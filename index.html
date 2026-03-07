@@ -1,0 +1,3846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a365d">
+<title>CVR 525 - Residential Data Input</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2a5298;
+  --accent: #e53e3e;
+  --bg: #f7fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1a202c;
+  --text-muted: #718096;
+  --required-bg: #fff5f5;
+  --required-border: #fed7d7;
+  --success: #38a169;
+  --mic-active: #e53e3e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  padding-bottom: 80px;
+}
+.app-header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.app-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.app-header .subtitle {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.header-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.header-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.header-btn:active { background: rgba(255,255,255,0.25); }
+.header-btn.danger { background: rgba(229,62,62,0.3); border-color: rgba(229,62,62,0.5); }
+.header-btn.success { background: rgba(56,161,105,0.3); border-color: rgba(56,161,105,0.5); }
+
+/* Transcript Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal h2 { font-size: 18px; margin-bottom: 12px; }
+.modal textarea {
+  width: 100%;
+  min-height: 200px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+.modal .btn-row { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+.modal .btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.modal .btn-primary { background: var(--primary); color: white; }
+.modal .btn-cancel { background: var(--border); color: var(--text); }
+.modal .parse-instructions {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* Progress bar */
+.progress-bar {
+  background: rgba(255,255,255,0.2);
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.progress-fill {
+  background: #48bb78;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+  width: 0%;
+}
+.progress-text {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+/* Sections */
+.section {
+  margin: 12px;
+  background: var(--card);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  user-select: none;
+}
+.section-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-header .page-badge {
+  background: rgba(255,255,255,0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+}
+.section-header .chevron {
+  transition: transform 0.2s;
+  font-size: 18px;
+}
+.section.collapsed .section-header .chevron { transform: rotate(-90deg); }
+.section-body {
+  padding: 16px;
+  transition: max-height 0.3s;
+}
+.section.collapsed .section-body { display: none; }
+
+/* Field groups */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (min-width: 600px) {
+  .field-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .field-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .field-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.field label.required::after {
+  content: ' *';
+  color: var(--accent);
+}
+.field .input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="date"],
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.field.required input,
+.field.required select,
+.field.required textarea {
+  background: var(--required-bg);
+  border-color: var(--required-border);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(42,82,152,0.1);
+}
+.field textarea { min-height: 80px; resize: vertical; }
+
+/* Mic button */
+.mic-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mic-btn:active { background: #f0f0f0; }
+.mic-btn.recording {
+  color: white;
+  background: var(--mic-active);
+  border-color: var(--mic-active);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229,62,62,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(229,62,62,0); }
+}
+.mic-svg { width: 18px; height: 18px; }
+
+/* Checkbox groups */
+.checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+}
+.checkbox-group.narrow {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 13px;
+}
+.checkbox-item:active { background: #edf2f7; }
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* Radio groups */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.radio-item:has(input:checked) {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+.radio-item input[type="radio"] { display: none; }
+
+/* Room info table */
+.room-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.room-table th {
+  background: #edf2f7;
+  padding: 8px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.room-table td {
+  padding: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.room-table td .room-label {
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.room-table input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.room-table input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+}
+
+/* Sub-section divider */
+.sub-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--primary);
+  padding: 8px 0;
+  margin-top: 8px;
+  border-bottom: 2px solid var(--primary);
+  letter-spacing: 0.5px;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a202c;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 300;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* Upload Modal */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+  position: relative;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--primary-light);
+  background: rgba(42,82,152,0.05);
+}
+.upload-zone input[type="file"] {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.upload-zone .icon { font-size: 32px; margin-bottom: 8px; }
+.upload-zone .label { font-size: 14px; font-weight: 600; color: var(--text); }
+.upload-zone .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.upload-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+.upload-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+.upload-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.upload-panel { display: none; }
+.upload-panel.active { display: block; }
+.upload-status {
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 12px;
+  display: none;
+}
+.upload-status.loading {
+  display: block;
+  background: #ebf8ff;
+  color: #2b6cb0;
+}
+.upload-status.success {
+  display: block;
+  background: #f0fff4;
+  color: #276749;
+}
+.upload-status.error {
+  display: block;
+  background: #fff5f5;
+  color: #c53030;
+}
+.filled-summary {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.filled-summary .item {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+.filled-summary .item .fname { color: var(--text-muted); }
+.filled-summary .item .fval { font-weight: 600; max-width: 60%; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Saved Listings Panel */
+.listings-list { max-height: 300px; overflow-y: auto; }
+.listing-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.listing-card:hover { border-color: var(--primary-light); background: rgba(42,82,152,0.03); }
+.listing-card.active { border-color: var(--primary); background: rgba(42,82,152,0.08); }
+.listing-card .lc-info { flex: 1; }
+.listing-card .lc-title { font-size: 14px; font-weight: 600; }
+.listing-card .lc-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.listing-card .lc-actions { display: flex; gap: 4px; }
+.listing-card .lc-btn {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 8px; font-size: 11px; cursor: pointer; color: var(--text-muted);
+}
+.listing-card .lc-btn:hover { border-color: var(--primary-light); color: var(--primary); }
+.listing-card .lc-btn.del:hover { border-color: var(--accent); color: var(--accent); }
+.current-listing-bar {
+  background: rgba(56,161,105,0.1);
+  border: 1px solid rgba(56,161,105,0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #276749;
+  margin: 8px 12px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.current-listing-bar .cl-name { font-weight: 600; }
+.current-listing-bar .cl-save { font-size: 10px; opacity: 0.8; }
+
+/* Bottom nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+.bottom-nav button {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 4px 12px;
+}
+.bottom-nav button svg { width: 22px; height: 22px; }
+.bottom-nav button:active { color: var(--primary); }
+
+/* Saved indicator */
+.save-indicator {
+  font-size: 11px;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #48bb78;
+}
+
+/* Copy for MLS toast animation */
+@keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(-10px)} 10%{opacity:1;transform:translateX(-50%) translateY(0)} 80%{opacity:1;transform:translateX(-50%) translateY(0)} 100%{opacity:0;transform:translateX(-50%) translateY(-10px)} }
+
+/* Conflict flagging */
+.conflict-field { border-left: 3px solid #dd6b20 !important; background: #fffaf0 !important; }
+.conflict-badge { display: inline-flex; align-items: center; gap: 2px; background: #dd6b20; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 6px; cursor: help; position: relative; font-weight: 600; }
+.conflict-badge:hover .conflict-tip { display: block; }
+.conflict-tip { display: none; position: absolute; left: 0; top: 100%; margin-top: 4px; background: #2d3748; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; z-index: 1000; font-weight: 400; min-width: 200px; }
+.conflict-tip div { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.15); }
+.conflict-tip div:last-child { border-bottom: none; }
+#conflictBanner { background: #fffaf0; border: 1px solid #dd6b20; border-radius: 10px; padding: 12px 16px; margin: 0 16px 12px; display: none; }
+#conflictBanner h4 { color: #dd6b20; font-size: 14px; margin-bottom: 6px; cursor: pointer; }
+#conflictBanner .conflict-list { font-size: 12px; max-height: 200px; overflow-y: auto; }
+#conflictBanner .conflict-item { padding: 4px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+#conflictBanner .conflict-item:hover { background: #fff5eb; }
+.file-queue { margin-top: 8px; font-size: 12px; }
+.file-queue-item { padding: 4px 8px; border-radius: 4px; margin: 2px 0; display: flex; justify-content: space-between; align-items: center; }
+.file-queue-item.processing { background: #ebf8ff; }
+.file-queue-item.done { background: #f0fff4; }
+.file-queue-item.error { background: #fff5f5; }
+.source-tag { display: inline-block; font-size: 9px; background: var(--primary-light); color: #fff; padding: 0 5px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+.lookup-links { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.lookup-links a { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: var(--primary); color: #fff; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 500; }
+.lookup-links a:hover { background: var(--primary-light); }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>CVR 525 Residential Data Input</h1>
+  <div class="subtitle">eXp Realty - Central Virginia Regional MLS</div>
+  <div class="header-actions">
+    <button class="header-btn" onclick="openUploadModal()" style="background:rgba(56,161,105,0.4);border-color:rgba(56,161,105,0.6)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload Data
+    </button>
+    <button class="header-btn" onclick="openTranscript()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      Import Transcript
+    </button>
+    <button class="header-btn success" onclick="exportJSON()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export JSON
+    </button>
+    <button class="header-btn" onclick="fullAutoMLS()" style="background:linear-gradient(135deg,rgba(66,103,178,0.6),rgba(221,107,32,0.6));border-color:rgba(221,107,32,0.7);font-weight:700;font-size:12px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Zillow &rarr; Form &rarr; MLS
+    </button>
+    <button class="header-btn" onclick="openListingsPanel()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Listings
+    </button>
+    <button class="header-btn danger" onclick="clearForm()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Clear
+    </button>
+    <button class="header-btn" onclick="document.getElementById('helpModal').classList.add('active')" style="background:rgba(99,102,241,0.4);border-color:rgba(99,102,241,0.6)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Help
+    </button>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text"><span id="progressText">0</span>% complete &middot; <span class="save-indicator"><span class="save-dot"></span> Auto-saved</span></div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal-overlay" id="helpModal" onclick="if(event.target===this)this.classList.remove('active')">
+  <div class="modal" style="max-width:600px;max-height:85vh;overflow-y:auto">
+    <h2 style="margin-bottom:16px;font-size:20px">How to Use This Form</h2>
+
+    <div style="margin-bottom:20px;padding:12px 16px;background:#edf2f7;border-radius:8px;font-size:13px;line-height:1.6">
+      <strong style="font-size:14px">Quick Start (New Listing)</strong><br>
+      1. Enter address &rarr; 2. Click "Zillow &rarr; Form &rarr; MLS" &rarr; 3. Paste into Claude in Chrome &rarr; 4. Review in Matrix. Done.
+    </div>
+
+    <div style="font-size:13px;line-height:1.8">
+
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0">
+        <strong style="font-size:14px;color:#4267b2">Upload Data</strong> <span style="color:#718096">(green button)</span><br>
+        Upload PDF files to auto-fill the form. Supports multiple PDFs at once.<br>
+        <strong>Works with:</strong> PropertyDetails (tax records), 360 Property View (previous listings), RPR reports.<br>
+        <strong>How:</strong> Click button &rarr; Choose file(s) &rarr; Data fills automatically. If sources conflict, most recent wins and conflicts show orange badges.
+      </div>
+
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0">
+        <strong style="font-size:14px;color:#4267b2">Import Transcript</strong><br>
+        Paste a voice transcript or notes and the form pulls out property details automatically.<br>
+        <strong>How:</strong> Click button &rarr; Paste text &rarr; Click Parse.
+      </div>
+
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0">
+        <strong style="font-size:14px;color:#4267b2">Export JSON</strong> <span style="color:#718096">(green button)</span><br>
+        Downloads all form data as a JSON file for backup or sharing.
+      </div>
+
+      <div style="margin-bottom:16px;padding:14px 16px;border:2px solid #dd6b20;border-radius:8px;background:#fffaf0">
+        <strong style="font-size:15px;color:#dd6b20">Zillow &rarr; Form &rarr; MLS</strong> <span style="color:#718096">(gradient button)</span><br>
+        <strong>This is the main automation button.</strong> One click, one paste, full pipeline.<br><br>
+        <strong>Before clicking, you need:</strong><br>
+        &bull; Address entered in the form (at least house number + street name)<br>
+        &bull; Chrome open with 3 tabs: this form, MLS Matrix (logged in), and Zillow (auto-opens when you enter address)<br>
+        &bull; Claude in Chrome side panel open<br><br>
+        <strong>What it does:</strong><br>
+        &bull; Copies a complete automation prompt to your clipboard<br>
+        &bull; You paste it into Claude in Chrome<br>
+        &bull; Claude reads Zillow &rarr; fills this form &rarr; fills all 10 MLS Matrix tabs<br>
+        &bull; Listing stays "Incomplete" for your review<br><br>
+        <strong>Steps:</strong><br>
+        1. Enter address in the form<br>
+        2. Click this button (you'll see a "Copied!" confirmation)<br>
+        3. Click into the Claude in Chrome side panel<br>
+        4. Ctrl+V to paste, then Enter<br>
+        5. Wait while Claude does everything<br>
+        6. Review the listing in Matrix, fill in anything missing
+      </div>
+
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0;margin-top:16px">
+        <strong style="font-size:14px;color:#4267b2">Listings</strong><br>
+        Save and switch between multiple listings. Each listing auto-saves as you work.<br>
+        <strong>How:</strong> Click button &rarr; Save current listing or load a previous one.
+      </div>
+
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0">
+        <strong style="font-size:14px;color:#e53e3e">Clear</strong><br>
+        Wipes all form fields. Use when starting a brand new listing from scratch.<br>
+        <strong>Warning:</strong> This cannot be undone. Save your listing first if you need to keep it.
+      </div>
+
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0">
+        <strong style="font-size:14px;color:#4267b2">Address Lookup Links</strong><br>
+        When you enter an address, quick-link buttons appear below the address fields for Zillow, RPR, and your county tax website. Click any link to open that site with your address pre-loaded.
+      </div>
+
+      <div style="margin-bottom:8px;padding:10px 14px;background:#f0fff4;border-radius:8px">
+        <strong style="font-size:14px;color:#38a169">Tips</strong><br>
+        &bull; Form auto-saves every change. Your data is safe.<br>
+        &bull; Upload multiple PDFs at once for best results.<br>
+        &bull; Always use this form at <strong>ewalker732.github.io/cvr525-form</strong> (not a local file) when using Claude in Chrome.<br>
+        &bull; MLS listing status is NEVER set to Active. Always review first.
+      </div>
+
+    </div>
+
+    <button onclick="document.getElementById('helpModal').classList.remove('active')" style="margin-top:16px;width:100%;padding:12px;background:#4a5568;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Got it</button>
+  </div>
+</div>
+
+<!-- Transcript Modal -->
+<div class="modal-overlay" id="transcriptModal">
+  <div class="modal">
+    <h2>Import Voice Transcript</h2>
+    <p class="parse-instructions">
+      Paste your PLAUD or voice recording transcript below. Use a natural format like:<br>
+      <em>"County is Henrico, owner first name John, last name Smith, house number 1234, street name Oak Avenue, list price 450000, 3 bedrooms, 2 full baths, ranch style, year built 1995..."</em><br><br>
+      The parser will match keywords to form fields automatically.
+    </p>
+    <textarea id="transcriptText" placeholder="Paste your transcript here..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeTranscript()">Cancel</button>
+      <button class="btn btn-primary" onclick="parseTranscript()">Parse & Fill</button>
+    </div>
+  </div>
+</div>
+
+<!-- Current Listing Bar -->
+<div class="current-listing-bar" id="currentListingBar" style="display:none">
+  <span><span class="cl-name" id="currentListingName"></span></span>
+  <span class="cl-save" id="currentListingSaved"></span>
+</div>
+
+<!-- Listings Management Modal -->
+<div class="modal-overlay" id="listingsModal">
+  <div class="modal">
+    <h2>Saved Listings</h2>
+    <p class="parse-instructions">Your listings are saved in this browser's storage. Use Export JSON to download a backup file.</p>
+    <div class="btn-row" style="justify-content:flex-start;margin-bottom:12px">
+      <button class="btn btn-primary" onclick="saveCurrentListing()">Save Current as New Listing</button>
+      <button class="btn btn-cancel" onclick="importListingJSON()">Import JSON</button>
+    </div>
+    <input type="file" id="importJsonInput" accept=".json" style="display:none" onchange="handleImportJSON(this.files[0])">
+    <div class="listings-list" id="listingsList"></div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeListingsPanel()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Property Data Modal -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <h2>Upload Property Data</h2>
+    <p class="parse-instructions">
+      Upload a 360 Property View PDF, tax record PDF, photo/screenshot, or paste text. The parser will auto-fill matching fields.
+    </p>
+    <div class="upload-tabs">
+      <button class="upload-tab active" onclick="switchUploadTab('file')">PDF / Photo</button>
+      <button class="upload-tab" onclick="switchUploadTab('text')">Paste Text</button>
+    </div>
+    <div class="upload-panel active" id="upload-panel-file">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="uploadFileInput" accept=".pdf,image/*" multiple onchange="handleMultipleFiles(this.files)">
+        <div class="icon">&#128196;</div>
+        <div class="label">Tap to select or drag a file here</div>
+        <div class="hint">Upload multiple PDFs or images at once</div>
+      </div>
+    </div>
+    <div class="upload-panel" id="upload-panel-text">
+      <textarea id="uploadPasteText" placeholder="Paste property data text here (from MLS, tax website, email, etc.)..." style="width:100%;min-height:180px;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="upload-status" id="uploadStatus"></div>
+    <div class="filled-summary" id="filledSummary"></div>
+    <div id="conflictPanel" style="display:none;margin-top:12px;padding:10px;background:#fffaf0;border-left:3px solid #dd6b20;border-radius:8px;">
+      <h4 style="color:#dd6b20;font-size:13px;margin-bottom:6px;">Conflicting Values Found</h4>
+      <div id="conflictList" style="font-size:12px;max-height:200px;overflow-y:auto;"></div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Most recent source was used. Conflicting fields are highlighted in the form.</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeUploadModal()">Close</button>
+      <button class="btn btn-primary" id="parseTextBtn" onclick="parseUploadedText()" style="display:none">Parse & Fill</button>
+    </div>
+  </div>
+</div>
+
+<div id="formContainer">
+
+<div id="conflictBanner">
+  <h4 onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">&#9888; Data Conflicts Detected (click to expand)</h4>
+  <div class="conflict-list" id="conflictBannerList" style="display:none"></div>
+</div>
+
+<!-- ===================== SECTION 1: TAX RECORD / STATUS (Page 1) ===================== -->
+<div class="section" id="sec-tax">
+  <div class="section-header" onclick="toggleSection('sec-tax')">
+    <h2><span class="page-badge">P1</span> Tax Record & Status</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">County</label>
+        <div class="input-wrap">
+          <input type="text" name="county" placeholder="Select County/City">
+          <button class="mic-btn" onclick="startMic(this,'county')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>PID (Parcel ID #)</label>
+        <div class="input-wrap">
+          <input type="text" name="pid" placeholder="Parcel ID">
+          <button class="mic-btn" onclick="startMic(this,'pid')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field">
+        <label>Owner First Name</label>
+        <div class="input-wrap">
+          <input type="text" name="ownerFirstName" placeholder="First Name">
+          <button class="mic-btn" onclick="startMic(this,'ownerFirstName')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Owner Last Name</label>
+        <div class="input-wrap">
+          <input type="text" name="ownerLastName" placeholder="Last Name">
+          <button class="mic-btn" onclick="startMic(this,'ownerLastName')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field">
+        <label>House Number</label>
+        <div class="input-wrap">
+          <input type="text" name="houseNumber" placeholder="#">
+          <button class="mic-btn" onclick="startMic(this,'houseNumber')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Street Name</label>
+        <div class="input-wrap">
+          <input type="text" name="streetNameTax" placeholder="Street Name">
+          <button class="mic-btn" onclick="startMic(this,'streetNameTax')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Unit Number</label>
+        <div class="input-wrap">
+          <input type="text" name="unitNumberTax" placeholder="Unit #">
+          <button class="mic-btn" onclick="startMic(this,'unitNumberTax')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="addressLookupRow" class="lookup-links" style="display:none;margin-top:6px;margin-bottom:10px;"></div>
+
+    <div class="sub-header">Status Information</div>
+    <div class="field-row">
+      <div class="field required">
+        <label class="required">Status</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="status" value="Incomplete"> Incomplete</label>
+          <label class="radio-item"><input type="radio" name="status" value="Active"> Active</label>
+          <label class="radio-item"><input type="radio" name="status" value="Coming Soon"> Coming Soon</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-header">Listing Information</div>
+    <div class="field-row cols-2">
+      <div class="field">
+        <label>County / City</label>
+        <div class="input-wrap">
+          <input type="text" name="countyCity" placeholder="County/City">
+          <button class="mic-btn" onclick="startMic(this,'countyCity')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Delayed Show (Y/N)</label>
+        <select name="delayedShow"><option value="">--</option><option>Y</option><option>N</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">List Price</label>
+        <div class="input-wrap">
+          <input type="text" name="listPrice" placeholder="$" inputmode="numeric">
+          <button class="mic-btn" onclick="startMic(this,'listPrice')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field required">
+        <label class="required">List Date</label>
+        <input type="date" name="listDate">
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field">
+        <label>No Show Until</label>
+        <input type="date" name="noShowUntil">
+      </div>
+      <div class="field">
+        <label>Expected On Market Date</label>
+        <input type="date" name="expectedOnMarketDate">
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">Type</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="propertyType" value="Single Family"> Single Family</label>
+          <label class="radio-item"><input type="radio" name="propertyType" value="Townhouse"> Townhouse</label>
+          <label class="radio-item"><input type="radio" name="propertyType" value="Condo"> Condo</label>
+          <label class="radio-item"><input type="radio" name="propertyType" value="Cooperative"> Cooperative</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Attached Y/N</label>
+        <select name="attached"><option value="">--</option><option>Yes</option><option>No</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field">
+        <label>PID (Listing)</label>
+        <input type="text" name="pidListing" placeholder="Parcel ID">
+      </div>
+      <div class="field">
+        <label>Area</label>
+        <input type="text" name="area" placeholder="Area code">
+      </div>
+      <div class="field">
+        <label>Expire Date</label>
+        <input type="date" name="expireDate">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 2: LOCATION (Page 2) ===================== -->
+<div class="section collapsed" id="sec-location">
+  <div class="section-header" onclick="toggleSection('sec-location')">
+    <h2><span class="page-badge">P2</span> Location Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row cols-4">
+      <div class="field">
+        <label>Street #</label>
+        <div class="input-wrap">
+          <input type="text" name="streetNum" placeholder="#">
+          <button class="mic-btn" onclick="startMic(this,'streetNum')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Street Direction</label>
+        <select name="streetDirection"><option value="">--</option><option>N</option><option>S</option><option>E</option><option>W</option><option>NE</option><option>NW</option><option>SE</option><option>SW</option></select>
+      </div>
+      <div class="field">
+        <label>Street Name</label>
+        <div class="input-wrap">
+          <input type="text" name="streetName" placeholder="Street Name">
+          <button class="mic-btn" onclick="startMic(this,'streetName')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Street Suffix</label>
+        <div class="input-wrap">
+          <input type="text" name="streetSuffix" placeholder="St, Ave, Dr...">
+          <button class="mic-btn" onclick="startMic(this,'streetSuffix')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-4">
+      <div class="field"><label>Unit #</label><input type="text" name="unitNum" placeholder="Unit"></div>
+      <div class="field"><label>Unit/Level</label><input type="text" name="unitLevel"></div>
+      <div class="field required"><label class="required">Zip Code</label><input type="text" name="zipCode" inputmode="numeric" maxlength="5"></div>
+      <div class="field"><label>Zip+4</label><input type="text" name="zip4" inputmode="numeric" maxlength="4"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>State</label><input type="text" name="state" value="VA" maxlength="2"></div>
+      <div class="field">
+        <label>Post Office</label>
+        <div class="input-wrap">
+          <input type="text" name="postOffice" placeholder="Post Office">
+          <button class="mic-btn" onclick="startMic(this,'postOffice')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">New/Resale</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="newResale" value="New"> New (Never Occupied)</label>
+          <label class="radio-item"><input type="radio" name="newResale" value="Resale"> Resale</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>PUD</label>
+        <div class="input-wrap">
+          <input type="text" name="pud" placeholder="PUD Name">
+          <button class="mic-btn" onclick="startMic(this,'pud')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">Subdivision</label>
+        <div class="input-wrap">
+          <input type="text" name="subdivision" placeholder="Subdivision">
+          <button class="mic-btn" onclick="startMic(this,'subdivision')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Neighborhood (Req'd if Subdivision=None)</label>
+        <div class="input-wrap">
+          <input type="text" name="neighborhood" placeholder="Neighborhood">
+          <button class="mic-btn" onclick="startMic(this,'neighborhood')"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field required"><label class="required">Year Built</label><input type="text" name="yearBuilt" inputmode="numeric" maxlength="4"></div>
+      <div class="field"><label>Year Built Description</label><input type="text" name="yearBuiltDesc"></div>
+      <div class="field required"><label class="required">Above Grade Fin SQF</label><input type="text" name="aboveGradeFinSqf" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-4">
+      <div class="field required"><label class="required">Rooms</label><input type="text" name="rooms" inputmode="numeric"></div>
+      <div class="field required"><label class="required">Levels</label><input type="text" name="levels" inputmode="numeric"></div>
+      <div class="field"><label>Lot</label><input type="text" name="lot"></div>
+      <div class="field"><label>Above Grade UnFin SQF</label><input type="text" name="aboveGradeUnfinSqf" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field required"><label class="required">Bedrooms</label><input type="text" name="bedrooms" inputmode="numeric"></div>
+      <div class="field"><label>Below Grade Fin SQF</label><input type="text" name="belowGradeFinSqf" inputmode="numeric"></div>
+      <div class="field"><label>Below Grade UnFin SQF</label><input type="text" name="belowGradeUnfinSqf" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field required">
+        <label class="required">SqFt Source</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Appraiser"> Appraiser</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Architect"> Architect</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Builder"> Builder</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Owner"> Owner</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Per Tax"> Tax</label>
+          <label class="radio-item"><input type="radio" name="sqftSource" value="Other"> Other</label>
+        </div>
+      </div>
+      <div class="field"><label>Fin SqFt Source Desc (150 chars)</label><textarea name="finSqftSourceDesc" maxlength="150" rows="2"></textarea></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Elementary School</label><input type="text" name="elementarySchool"></div>
+      <div class="field"><label>Middle School</label><input type="text" name="middleSchool"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>High School</label><input type="text" name="highSchool"></div>
+      <div class="field"><label>Other School</label><input type="text" name="otherSchool"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Directions (215 characters)</label>
+        <div class="input-wrap">
+          <textarea name="directions" maxlength="215" rows="2" placeholder="Driving directions to property"></textarea>
+          <button class="mic-btn" onclick="startMic(this,'directions')" style="align-self:flex-start;margin-top:4px"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 3: ROOMS (Pages 2-3) ===================== -->
+<div class="section collapsed" id="sec-rooms">
+  <div class="section-header" onclick="toggleSection('sec-rooms')">
+    <h2><span class="page-badge">P2-3</span> Room Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body" style="overflow-x:auto">
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Room Level required if Room Type selected</p>
+    <table class="room-table">
+      <thead><tr><th>Room Type</th><th>Length (ft.in)</th><th>Width (ft.in)</th><th>Level</th><th>Description (50 chars)</th></tr></thead>
+      <tbody id="roomTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== SECTION 4: BATH INFO (Page 3) ===================== -->
+<div class="section collapsed" id="sec-bath">
+  <div class="section-header" onclick="toggleSection('sec-bath')">
+    <h2><span class="page-badge">P3</span> Bath Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Description: "Shower", "Tub" or "Tub & Shower"</p>
+    <table class="room-table">
+      <thead><tr><th>Level</th><th>Description</th><th>Full Bath</th><th>Half Bath</th></tr></thead>
+      <tbody>
+        <tr><td><span class="room-label">Basement</span></td><td><input type="text" name="bathDescBasement"></td><td><input type="text" name="fullBathBasement" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathBasement" inputmode="numeric" style="width:50px"></td></tr>
+        <tr><td><span class="room-label">Level 1</span></td><td><input type="text" name="bathDescLevel1"></td><td><input type="text" name="fullBathLevel1" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathLevel1" inputmode="numeric" style="width:50px"></td></tr>
+        <tr><td><span class="room-label">Level 2</span></td><td><input type="text" name="bathDescLevel2"></td><td><input type="text" name="fullBathLevel2" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathLevel2" inputmode="numeric" style="width:50px"></td></tr>
+        <tr><td><span class="room-label">Level 3</span></td><td><input type="text" name="bathDescLevel3"></td><td><input type="text" name="fullBathLevel3" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathLevel3" inputmode="numeric" style="width:50px"></td></tr>
+        <tr><td><span class="room-label">Level 4</span></td><td><input type="text" name="bathDescLevel4"></td><td><input type="text" name="fullBathLevel4" inputmode="numeric" style="width:50px"></td><td><input type="text" name="halfBathLevel4" inputmode="numeric" style="width:50px"></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== SECTION 5: STYLE & FEATURES (Page 3) ===================== -->
+<div class="section collapsed" id="sec-style">
+  <div class="section-header" onclick="toggleSection('sec-style')">
+    <h2><span class="page-badge">P3</span> Style, Structure, Siding, Roof, Flooring, Attic</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Style (3)</div>
+    <div class="checkbox-group" id="style-checks"></div>
+    <div class="sub-header">Structure (2)</div>
+    <div class="checkbox-group narrow" id="structure-checks"></div>
+    <div class="sub-header">Siding (2)</div>
+    <div class="checkbox-group" id="siding-checks"></div>
+    <div class="sub-header">Roof (3)</div>
+    <div class="checkbox-group" id="roof-checks"></div>
+    <div class="sub-header">Flooring (4)</div>
+    <div class="checkbox-group" id="flooring-checks"></div>
+    <div class="sub-header">Attic (3)</div>
+    <div class="checkbox-group narrow" id="attic-checks"></div>
+    <div class="sub-header">Golf Frontage Y/N</div>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="golfFrontage" value="Yes"> Yes</label>
+      <label class="radio-item"><input type="radio" name="golfFrontage" value="No"> No</label>
+    </div>
+    <div class="sub-header" style="margin-top:8px">Golf View/Frontage</div>
+    <div class="checkbox-group narrow" id="golfview-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 6: PARKING & GARAGE (Page 4) ===================== -->
+<div class="section collapsed" id="sec-parking">
+  <div class="section-header" onclick="toggleSection('sec-parking')">
+    <h2><span class="page-badge">P4</span> Parking, Garage, Basement</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Parking (3)</div>
+    <div class="checkbox-group" id="parking-checks"></div>
+    <div class="field-row cols-2" style="margin-top:12px">
+      <div class="field">
+        <label>Garage Y/N</label>
+        <select name="garageYN"><option value="">--</option><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="field">
+        <label># Cars (Req'd if Garage=Y)</label>
+        <select name="garageCars"><option value="">--</option><option>1</option><option>1.5</option><option>2</option><option>2.5</option><option>3</option><option>4+</option></select>
+      </div>
+    </div>
+    <div class="sub-header">Garage (6) - Req'd if Garage=Y</div>
+    <div class="checkbox-group" id="garage-checks"></div>
+    <div class="field-row cols-2" style="margin-top:12px">
+      <div class="field">
+        <label>Basement Y/N</label>
+        <select name="basementYN"><option value="">--</option><option>Yes</option><option>No</option></select>
+      </div>
+    </div>
+    <div class="sub-header">Basement/Foundation (3) - Req'd if Basement=Y</div>
+    <div class="checkbox-group" id="basement-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 7: INTERIOR & EXTERIOR (Page 4) ===================== -->
+<div class="section collapsed" id="sec-interior">
+  <div class="section-header" onclick="toggleSection('sec-interior')">
+    <h2><span class="page-badge">P4</span> Interior & Exterior Features</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Interior (25)</div>
+    <div class="checkbox-group" id="interior-checks"></div>
+    <div class="sub-header">Exterior (10)</div>
+    <div class="checkbox-group" id="exterior-checks"></div>
+    <div class="sub-header">Water (3)</div>
+    <div class="checkbox-group narrow" id="water-checks"></div>
+    <div class="sub-header">Sewer / Septic</div>
+    <div class="checkbox-group" id="sewer-checks"></div>
+    <div class="field-row cols-2" style="margin-top:8px">
+      <div class="field"><label>Maintenance Contract Y/N</label><select name="maintenanceContract"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Currently Connected Internet</label></div>
+    </div>
+    <div class="checkbox-group narrow" id="internet-checks"></div>
+    <div class="field-row cols-2" style="margin-top:8px">
+      <div class="field"><label>Internet Description</label><input type="text" name="internetDesc"></div>
+      <div class="field"><label>ADU Y/N</label><select name="aduYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="field-row"><div class="field"><label>ADU Description</label><input type="text" name="aduDesc"></div></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 8: FENCED, COMMUNITY, APPLIANCES (Page 5) ===================== -->
+<div class="section collapsed" id="sec-community">
+  <div class="section-header" onclick="toggleSection('sec-community')">
+    <h2><span class="page-badge">P5</span> Fencing, Community, Appliances, Accessibility</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row cols-2">
+      <div class="field"><label>Fenced Y/N</label><select name="fencedYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="sub-header">Fenced (3) - Req'd if Fenced=Y</div>
+    <div class="checkbox-group" id="fenced-checks"></div>
+    <div class="sub-header">Community Amenities (20)</div>
+    <div class="checkbox-group" id="community-checks"></div>
+    <div class="sub-header">Appliances/Equipment (25)</div>
+    <div class="checkbox-group" id="appliance-checks"></div>
+    <div class="field-row cols-2" style="margin-top:8px">
+      <div class="field"><label>Disabl Equipd Y/N</label><select name="disablEquipYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="sub-header">Disabl Features (5) - Req'd if Disabl Equipd=Y</div>
+    <div class="checkbox-group" id="disabl-checks"></div>
+    <div class="sub-header">Restrictions (5)</div>
+    <div class="checkbox-group" id="restrictions-checks"></div>
+    <div class="sub-header">Unit Placement (3)</div>
+    <div class="checkbox-group narrow" id="unitplacement-checks"></div>
+    <div class="sub-header">Green Cert (4)</div>
+    <div class="checkbox-group" id="greencert-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 9: HVAC, FIREPLACE, POOL (Page 6) ===================== -->
+<div class="section collapsed" id="sec-hvac">
+  <div class="section-header" onclick="toggleSection('sec-hvac')">
+    <h2><span class="page-badge">P6</span> Heating, Cooling, Fireplace, Pool, Porch</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Heating (3)</div>
+    <div class="checkbox-group" id="heating-checks"></div>
+    <div class="field-row" style="margin-top:8px"><div class="field"><label>Other Desc (Req'd if Heating=Other)</label><input type="text" name="heatingOtherDesc"></div></div>
+    <div class="sub-header">Heat/Fuel (3)</div>
+    <div class="checkbox-group narrow" id="heatfuel-checks"></div>
+    <div class="field-row" style="margin-top:8px"><div class="field"><label>Other Desc (Req'd if Heat/Fuel=Other)</label><input type="text" name="heatfuelOtherDesc"></div></div>
+    <div class="sub-header">Cooling (3)</div>
+    <div class="checkbox-group" id="cooling-checks"></div>
+    <div class="field-row" style="margin-top:8px"><div class="field"><label>Other Desc (Req'd if Cooling=Other)</label><input type="text" name="coolingOtherDesc"></div></div>
+    <div class="sub-header">Water Heater (2)</div>
+    <div class="checkbox-group narrow" id="waterheater-checks"></div>
+    <div class="field-row cols-2" style="margin-top:12px">
+      <div class="field"><label># Fireplaces</label><input type="text" name="numFireplaces" inputmode="numeric" style="width:60px"></div>
+    </div>
+    <div class="sub-header">Fireplace (4)</div>
+    <div class="checkbox-group narrow" id="fireplace-checks"></div>
+    <div class="field-row cols-2" style="margin-top:12px">
+      <div class="field"><label>Pool Y/N</label><select name="poolYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="sub-header">Pool Description (5) - Req'd if Pool=Y</div>
+    <div class="checkbox-group" id="pool-checks"></div>
+    <div class="sub-header">Porch (3)</div>
+    <div class="checkbox-group narrow" id="porch-checks"></div>
+    <div class="sub-header">Wall Type (4)</div>
+    <div class="checkbox-group narrow" id="walltype-checks"></div>
+    <div class="sub-header">Water Type (5)</div>
+    <div class="checkbox-group" id="watertype-checks"></div>
+    <div class="sub-header">Building/Structure (10)</div>
+    <div class="checkbox-group" id="building-checks"></div>
+    <div class="sub-header">Farm Type (6)</div>
+    <div class="checkbox-group narrow" id="farmtype-checks"></div>
+    <div class="sub-header">Irrigation Source (3)</div>
+    <div class="checkbox-group narrow" id="irrigation-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 10: GENERAL INFO (Page 7) ===================== -->
+<div class="section collapsed" id="sec-general">
+  <div class="section-header" onclick="toggleSection('sec-general')">
+    <h2><span class="page-badge">P7</span> General Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row cols-2">
+      <div class="field"><label>Waterfront Y/N</label><select name="waterfrontYN"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Acres</label><input type="text" name="acres"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Body of Water</label><input type="text" name="bodyOfWater"></div>
+      <div class="field"><label>Lot Dimensions (LxW)</label><input type="text" name="lotDimensions" placeholder="e.g. 100x200"></div>
+    </div>
+    <div class="field-row cols-4">
+      <div class="field required"><label class="required">Tax Year</label><input type="text" name="taxYear" inputmode="numeric" maxlength="4"></div>
+      <div class="field required"><label class="required">Annual Taxes</label><input type="text" name="annualTaxes" inputmode="numeric"></div>
+      <div class="field"><label>Assd Land</label><input type="text" name="assdLand" inputmode="numeric"></div>
+      <div class="field"><label>Assd Imprv</label><input type="text" name="assdImprv" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Assd Total</label><input type="text" name="assdTotal" inputmode="numeric"></div>
+      <div class="field"><label>Legal (75 characters)</label><textarea name="legal" maxlength="75" rows="2"></textarea></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Investor Rental Cap Y/N</label><select name="investorRentalCap"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Water Frontage</label><input type="text" name="waterFrontage"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Road Frontage</label><input type="text" name="roadFrontage"></div>
+      <div class="field"><label>Home Warranty</label><input type="text" name="homeWarranty"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Current Zoning</label><input type="text" name="currentZoning"></div>
+      <div class="field"><label>Water Depth</label>
+        <select name="waterDepth"><option value="">--</option><option>0-2 ft</option><option>2-4 ft</option><option>4-6 ft</option><option>6+ ft</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Model Available Y/N (Req'd if New)</label><select name="modelAvailable"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Model Furnished Y/N</label><select name="modelFurnished"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Does Not Convey</label><textarea name="doesNotConvey" rows="2"></textarea></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Does Convey</label><textarea name="doesConvey" rows="2"></textarea></div>
+    </div>
+    <div class="sub-header">Lot Description (6)</div>
+    <div class="checkbox-group" id="lotdesc-checks"></div>
+    <div class="field-row cols-3" style="margin-top:12px">
+      <div class="field"><label>Minimum Deposit</label><input type="text" name="minimumDeposit" inputmode="numeric"></div>
+      <div class="field"><label>Pre Qual Letter Y/N</label><select name="preQualLetter"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Res Energy Efficient Appraisal Y/N</label><select name="resEnergyAppraisal"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Home Energy Score (1-10)</label><input type="text" name="homeEnergyScore" inputmode="numeric"></div>
+      <div class="field"><label>Home Energy Rating System (10 chars)</label><input type="text" name="homeEnergyRating" maxlength="10"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Disclosures (2)</label>
+        <select name="disclosures"><option value="">--</option><option>Listing Attachment</option><option>No Form</option><option>Not Required</option><option>Office</option><option>Property</option></select>
+      </div>
+      <div class="field"><label>Lead Disclosure (2)</label>
+        <select name="leadDisclosure"><option value="">--</option><option>Listing Attachment</option><option>No Form</option><option>Not Required</option><option>Office</option><option>Property</option></select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 11: REMARKS (Page 8) ===================== -->
+<div class="section collapsed" id="sec-remarks">
+  <div class="section-header" onclick="toggleSection('sec-remarks')">
+    <h2><span class="page-badge">P8</span> Remarks & Fees</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="field-row">
+      <div class="field required">
+        <label class="required">Remarks (2048 characters)</label>
+        <div class="input-wrap">
+          <textarea name="remarks" maxlength="2048" rows="5" placeholder="Property description..."></textarea>
+          <button class="mic-btn" onclick="startMic(this,'remarks')" style="align-self:flex-start;margin-top:4px"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Agent Only Comments (1000 characters)</label>
+        <div class="input-wrap">
+          <textarea name="agentComments" maxlength="1000" rows="3" placeholder="Agent only notes..."></textarea>
+          <button class="mic-btn" onclick="startMic(this,'agentComments')" style="align-self:flex-start;margin-top:4px"><svg class="mic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Copyright Assign Y/N</label><select name="copyrightAssign"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+
+    <div class="sub-header">Fee Information</div>
+    <div class="field-row cols-4">
+      <div class="field"><label>HOA/Condo</label><select name="hoaCondo"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Add'l HOA Y/N</label><select name="addlHoa"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Membership Reqd</label><select name="membershipReqd"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Fee $ (Req'd if HOA=Y)</label><input type="text" name="hoaFee" inputmode="numeric"></div>
+    </div>
+    <div class="field-row cols-3">
+      <div class="field"><label>Fee Period</label><select name="feePeriod"><option value="">--</option><option>Monthly</option><option>Quarterly</option><option>Yearly</option></select></div>
+      <div class="field"><label>Management Firm</label><input type="text" name="managementFirm" maxlength="30"></div>
+      <div class="field"><label>Management Phone</label><input type="text" name="managementPhone" placeholder="___-___-____"></div>
+    </div>
+    <div class="field-row"><div class="field"><label>HOA Website</label><input type="text" name="hoaWebsite"></div></div>
+    <div class="sub-header">Fee Desc (2)</div>
+    <div class="checkbox-group narrow" id="feedesc-checks"></div>
+    <div class="sub-header">Fee Includes (10)</div>
+    <div class="checkbox-group" id="feeincludes-checks"></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 12: OWNER & AGENT (Page 9) ===================== -->
+<div class="section collapsed" id="sec-owner">
+  <div class="section-header" onclick="toggleSection('sec-owner')">
+    <h2><span class="page-badge">P9</span> Owner & Agent Information</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Owner Information</div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Owner Name</label><input type="text" name="ownerName"></div>
+      <div class="field"><label>Owner Name 2</label><input type="text" name="ownerName2"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Occupant Name</label><input type="text" name="occupantName"></div>
+      <div class="field"><label>Owner Phone</label><input type="text" name="ownerPhone" placeholder="___-___-____"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Occupant Phone</label><input type="text" name="occupantPhone" placeholder="___-___-____"></div>
+      <div class="field"><label>Owner Agent Y/N</label><select name="ownerAgent"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Agent Related to Seller Y/N</label><select name="agentRelatedSeller"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Occupied By</label><select name="occupiedBy"><option value="">--</option><option>Other</option><option>Owner</option><option>Tenant</option><option>Under Construction</option><option>Vacant</option></select></div>
+    </div>
+    <div class="sub-header">Owned By (3)</div>
+    <div class="checkbox-group narrow" id="ownedby-checks"></div>
+    <div class="sub-header">Possession (2)</div>
+    <div class="checkbox-group" id="possession-checks"></div>
+
+    <div class="sub-header">Agent/Office Information</div>
+    <div class="field-row cols-2">
+      <div class="field"><label>List Agent Code</label><input type="text" name="listAgentCode"></div>
+      <div class="field"><label>List Agent Name</label><input type="text" name="listAgentName"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>List Office Code</label><input type="text" name="listOfficeCode"></div>
+      <div class="field"><label>List Office Name</label><input type="text" name="listOfficeName"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Co-List Agent Code</label><input type="text" name="coListAgentCode"></div>
+      <div class="field"><label>Co-List Agent Name</label><input type="text" name="coListAgentName"></div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Co-List Office Name</label><input type="text" name="coListOfficeName"></div>
+      <div class="field"><label>List Type</label>
+        <select name="listType"><option value="">--</option><option>Exclusive Agency</option><option>Exclusive Right</option><option>MLS Only Listing</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Limited Rep Y/N</label><select name="limitedRep"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Add'l Fee $</label><input type="text" name="addlFee" inputmode="numeric"></div>
+    </div>
+    <div class="field-row"><div class="field"><label>Add'l Fee Desc (50 chars)</label><input type="text" name="addlFeeDesc" maxlength="50"></div></div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 13: SHOWING & VIRTUAL TOUR (Page 10) ===================== -->
+<div class="section collapsed" id="sec-showing">
+  <div class="section-header" onclick="toggleSection('sec-showing')">
+    <h2><span class="page-badge">P10</span> Showing, Virtual Tour, Internet Display</h2>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="section-body">
+    <div class="sub-header">Showing Instructions</div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Showing Instr 1</label>
+        <select name="showingInstr1"><option value="">--</option><option>Accompany Show</option><option>Appt. Required</option></select>
+      </div>
+      <div class="field"><label>LockBox Type</label>
+        <select name="lockboxType"><option value="">--</option><option>Supra</option><option>Sentrilock</option><option>Both</option></select>
+      </div>
+    </div>
+    <div class="field-row cols-2">
+      <div class="field"><label>Supra Serial LB #</label><input type="text" name="supraSerial"></div>
+      <div class="field"><label>Sentrilock Serial LB #</label><input type="text" name="sentrilockSerial"></div>
+    </div>
+    <div class="sub-header">Showing Instr 2</div>
+    <div class="checkbox-group" id="showinginstr2-checks"></div>
+    <div class="field-row"><div class="field"><label>Addl Shw Inst</label><textarea name="addlShwInst" rows="2"></textarea></div></div>
+
+    <div class="sub-header">Virtual Tour Information</div>
+    <div class="field-row">
+      <div class="field"><label>Virtual Tour URL</label><input type="text" name="virtualTour" placeholder="https://"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Additional Virtual Tour URL</label><input type="text" name="addlVirtualTour" placeholder="https://"></div>
+    </div>
+
+    <div class="sub-header">Internet Display</div>
+    <div class="field-row cols-4">
+      <div class="field"><label>Internet Display Y/N</label><select name="internetDisplay"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Address Display Y/N</label><select name="addressDisplay"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>Comments/Reviews Y/N</label><select name="commentsReviews"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+      <div class="field"><label>AVM Y/N</label><select name="avm"><option value="">--</option><option>Yes</option><option>No</option></select></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end formContainer -->
+
+<div class="toast" id="toast"></div>
+
+<div class="bottom-nav">
+  <button onclick="scrollToTop()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5m-7 7l7-7 7 7"/></svg>
+    Top
+  </button>
+  <button onclick="expandAll()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Expand
+  </button>
+  <button onclick="collapseAll()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+    Collapse
+  </button>
+  <button onclick="exportJSON()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export
+  </button>
+</div>
+
+<script>
+// ======================== CHECKBOX DATA ========================
+const checkboxData = {
+  'style-checks': ['2-Story','A-frame','Cape','Colonial','Contemporary','Cottage/Bungalow','Craftsman','Custom','Dutch Colonial','Farm House','Gentleman Farm','Green Certified Home','Log','Manufactured Homes','Mediterranean/Spanish','Modern','Modular','Other','Patio Home','Ranch','Rowhouse/Townhouse','Saltbox','Split Foyer','Transitional','Tri-Level/Quad Level','Tudor','Victorian'],
+  'structure-checks': ['Block','Brick','Concrete','Frame','Log','Metal','Other','Stone','Wood'],
+  'siding-checks': ['Aluminum','Asbestos','Asphalt','Block','Brick','Brick Veneer','Cedar','Cedar Shake','Clapboard','Glass','Hardboard','Hardiplank Type','Log','Other','Redwood','Shingle','Steel','Stone','Stucco','Synth Stucco','T111','Vinyl','Wood'],
+  'roof-checks': ['Asbestos','Asphalt','Built-up','Composition','Concrete Com','Dimensional','Flat','Metal','Other','Rubber','Shingled','Slate','Slate-Manufactured','Sloped','Tar & Gravel','Tile','Wood'],
+  'flooring-checks': ['Bamboo','Carpet-Part','Carpet-W-W','Concrete','Cork','Granite','Laminate','Linoleum','Marble','Slate','Tile','Tile-Ceramic','Vinyl','Wood','Wood-Parquet','Wood-Part'],
+  'attic-checks': ['Access Panel','Expandable','Finished','Floored','No Attic','Part Finished','Pull Down','Walk-In','Walk-Up'],
+  'golfview-checks': ['Cart Path Side','Fairway','Green','Tee','View'],
+  'parking-checks': ['Assigned','Carport','Circular Drive','Common Drive','Covered','Double Width','In Alley','No Parking','Off Street','On Street','Open Lot','Paved Driveway','Underground','Unpaved Driveway','Valet','Visitor'],
+  'garage-checks': ['Apartment','Attached','Auto Door Opener','Basement','Detached','Direct Entry','Finished','Golf Cart','Heated','No Garage','Other','Oversized','Pedestrian Door','Side/Rear Load','Storage Above','Unfinished','Workshop'],
+  'basement-checks': ['Basement-Full','Basement-Partial','Crawl Space','Dirt','Finished-Com','Finished-Part','Floored','Garage Access','Heated','Interior Access','Locked Storage','Other','Roughed In','Slab','Unfinished','Walk-Out','Workshop'],
+  'interior-checks': ['1st Floor Bedrm W/ Full Bath','1st Floor Bedroom','1st Floor Primary Bedroom','9 Ft + Ceilings',"Add'l 1st Floor Primary BR",'Atrium','Bay/Bow Window','Beamed Ceiling','Breakfast Nook','Breezeway','Built In Cabinet/Bookcases','Butlers Pantry','Cable TV','Cathedral Ceiling','Ceiling Fan','Center Hall','Countertops - Granite/Stone','Countertops - Laminate','Countertops - Solid Surface','Countertops - Tile','Dining Area','Double Vanity','Dryer Hookup','DSL','Eat-In-Kitchen','Fire Sprinkler','Fireplace Insert','Formal Dining Room','French Doors','Garden Tub','Hot Tub','Housekeepers Quarters','Internal Balcony','Internet Ready','Island','Jetted Tub','Loft','MBR Bath','Pantry','Recessed Lighting','Rough-In Bath','Satellite Dish','Security System','Separate Suite','Skylight','Solar Tube','Stack Wshr/Dryer Hookup','Steam Shower','Sunken Tub','Track Lighting','Tray Ceiling','Walk-In Closet','Washer Hookup','Wet Bar','Window Treatment','Workshop'],
+  'exterior-checks': ['Awnings','Barn/Stable','Boat Lift','Bulkhead/RIP','Controlled Access','Deck','Dock/Pier','Gazebo','Green House Wn','Guest House','Horse Permitted','Hot Tub','Insulated Doors','Irrigation System','Lead Glass Windows','Out Building','Outdoor Lighting','Palladian Windows','Porch','Private Storage','Public Park','Sauna','Screens','Sliding Doors','Stained Glass','Storage Shed Attached','Storage Shed Detached','Storm Doors','Storm Windows','Swing Sets','Tennis Court','Thermal Windows'],
+  'water-checks': ['Community Well','Public Water','Well','Other'],
+  'sewer-checks': ['Septic - Aerobic','Septic - Conventional','Septic - Engineered','Septic - Mound','Septic - Shared','Sewer - Community','Sewer - Public','None','Other'],
+  'internet-checks': ['Addtl Info','Cable','DSL','Fiber','Other','Satellite','Unknown'],
+  'fenced-checks': ['All Fenced','Barbed','Board','Cedar','Chain Link','Combination','Decorative','Electric','Front Only','Invisible','No Fencing','Part Fenced','Picket','Privacy','Rear Only','Security','Split Rail','Vinyl/PVC','Wall','Wrought Iron'],
+  'community-checks': ['Association','Basketball','Beach','Boat Ramp','Clubhouse','Common Area','Common Laundry','Community Room','Controlled Access','Dock','Elevator','Exercise Room','Extra Storage','Gated Community','Golf Course','Hot Tub','Jogging Path','Kiddie Pool','Lake/Pond','Landscaping','Lifeguard','Maintenance Free','Marina','On Bus Line','Picnic Area','Playground','Pool','Professional Management','Putting Green','Resident Manager','Road Maintenance','RV/Boat Storage','Sauna','Security Guard','Sports Field','Tennis Court'],
+  'appliance-checks': ['Attic Fan','Central Vac','Compactor','Countertop Range','Dishwasher','Disposal','Double Oven','Downdraft Range','Drop-In Range','Dryer','Electric Air Cln','Electric Cooking','Exhaust Fan','Fire Sprinkler System','Freezer','Gas Cooking','Gas Grill','Generator','Generator Wired','Humidifier','Ice Maker','Intercom','Microwave','Oven','Refrigerator','Satellite Dish','Self/Con Cleaning','Smoke Alarm','Smooth Top Cooking','Stack Washer/Dryer','Stove','Stove Hood','Sump Pump','Wall Oven','Washer','Water Purifier','Water Softener','Wine Cooler'],
+  'disabl-checks': ['Additional Features','Auditory Alarms','Chair Lift','Comfort Height Switches','Elevator','Entry Level Accessible Full Bath','Entry Level Accessible Kitchen','Entry Level Bedrooms','Entry Ramp','Grab Bars','Roll In Shower','Roll Under Sink','Shower Seat','Stair Lift','Stepless Entry','Variable Height Cabinets','Variable Height Counters','Visual Alarms','Wheelchair Adapted','Wide Doorways or Min. 32" Wide Doors'],
+  'restrictions-checks': ['Age Qualified','Age-Restricted Community','Architec Des','Assoc Restrictions','Bldg Morator','Bldg Restrictions','Crops 2B Harv','Deed Restrictions','Easement','Excluded Party','Health Dept','Historic','Mineral Rights','No Mobile Homes','Other','Right Of Way','RV/Boat Storage','Subdiv Restr','Variance Needed','Waterfront Restrictions','Wetlands','Zoning Restrictions'],
+  'unitplacement-checks': ['Corner Unit','Detached','End Unit','Interior Unit','Lower Level','Middle Level','Street Level','Top Level','Walkout'],
+  'greencert-checks': ['EarthCraft','Energy Star Appliances','Energy Star/House','Home Performance w/Energy Star (exist homes)','Leed for Homes','National Green Building Standard','Other'],
+  'heating-checks': ['2 Zoned Heat','3 Or More Zones','Baseboard','Coal Stove','Electric','Floor Furnace','Forced Hot Air','Geothermal','Heat Pump','Hot Water','Hot Water Coil','Other','Radiant','Radiator','Space Heater','Steam','Timer Thermostat','Wall Furnace','Wood Stove'],
+  'heatfuel-checks': ['Coal','Electric','Geothermal','Multi-Fuel System','Natural Gas','None','Oil','Other','Propane Gas','Solar','Wood'],
+  'cooling-checks': ['2 Zoned AC','3 Or More Zones','Central Air','Electric','Gas A/C','Geothermal','Heat Pump','Individual Wall Units','Individual Window Units','None','Other','Timer Thermostat','Whole House Fan'],
+  'waterheater-checks': ['Electric','Instant Hot','Insulated','Natural Gas','Off Furnace','Oil','Other','Propane Gas','Recirculating','Solar','Tank','Tankless'],
+  'fireplace-checks': ['Brick','Direct Vent','Electric','Gas','Non-Vented','Non-Working','Prefabricate','Stone','Wood Burning'],
+  'pool-checks': ['Above Ground','Community/Off Site','Concrete','Covered','Fenced','Gunite','Heated','Hot Tub','In Ground','Indoor','Lap Pool','Membership Req','Other','Outdoor','Pool Equipment','Pool House','Self-Cleaner','Vinyl','With Spa','Within Yard'],
+  'porch-checks': ['Balcony','Deck','Front','Front Country','Front Full','Glass','Patio','Rear','Screened','Side','Sleeping Porch','Stoop','Wrap Around'],
+  'walltype-checks': ['Block','Brick','Drywall','Glass','Glass Block','Mixed','Other','Paneling','Plaster','Wood'],
+  'watertype-checks': ['Access','Bay Frontage','Beach','Creek Frontage','Dock/Mooring','Harbor Frontage','Lake','Lake Frontage','Marsh','MLW 0-2 Ft','MLW 2-4 Ft','MLW 4-6 Ft','MLW 6+ Ft','Navigable','Ocean/Bay Frontage','Pond','Riparian Rights','River','River Frontage','Sound Frontage','Stream','Walk To Water','Water Access','Whitewater'],
+  'building-checks': ['Boathouse','Barn','Cabin','Corn Crib','Cottage','Dairy','Feed Barn','Garage','Greenhouse','Hay Building','Livestock','Manufactured Home','Modular','Pump House','Shed','Smoke House','Stable','Storage','Tack Room','Tobacco Building','Utility Building'],
+  'farmtype-checks': ['Cattle','Crops','Dairy','Horse','Livestock','Nursery','Orchard','Poultry','Tree'],
+  'irrigation-checks': ['Creek/Stream','Irrigated','Lake','Pond','River'],
+  'lotdesc-checks': ['Additional Parcel Available','Beach','Boat Ramp','Buildable','Bulkhead/RIP','City View','Cleared','Corner','Crops','Cross Fenced','Cul-De-Sac','Curb/Gutters','Dead End Street','Fenced/Enclosed','Flag Lot','Fruit Trees','Graded','Irregular','Landlocked','Landscaped','Level','On Golf Course','Paper Street','Park Like','Pasture','Possible Subdivision','Possible Wetland','Railroad Access','Railroad Siding','Railroad Spur','Rolling','Sidewalks','Sloping','Steep Slopes','Street Lights','Subdividable','Timber-Hardwood','Timber-Mixed','Timber-Pine','Timbered-Clear Cut','Timbered-Select Cut','Unimproved','Waterfront','Waterview','Wooded','Zero Lot Line'],
+  'feedesc-checks': ['Community Association','Condo Association','Cooperative','Owners Association','Road Maintenance'],
+  'feeincludes-checks': ['Clubhouse','Comm Ar Mnt','Common Area','Community Utilities','Exterior Maintenance','Insurance','Limited Exterior Maintenance','Limited Yard Maintenance','Management Fees','Pool','Recreational Facilities','Road Maintenance','Security','Sewer','Snow Removal','Trash Removal','Water','Water Access','Yard Maintenance'],
+  'ownedby-checks': ['Corporate','Estate','Individuals','Other','Partnership','REO','Relocation'],
+  'possession-checks': ['At Closing','Immediate','Leasehold Rights','Negotiable','Other','Tenant Rights'],
+  'showinginstr2-checks': ['LB Call Agent','LB Call List Office','LB Call Owner','LB Call Showing Service','LB Call Tenant','LB Go Direct','LB Use Online Showing Service','No LB Call Agent','No LB Call List Office','No LB Call Owner','No LB Call Showing Service','No LB Call Tenant','No LB Go Direct','No LB Use Online Showing Service']
+};
+
+// ======================== ROOM DATA ========================
+const roomTypes = ['Additional Room 1','Additional Room 2','Additional Room 3','Additional Room 4','Bedroom 2','Bedroom 3','Bedroom 4','Bedroom 5','Dining Room','Family Room','Florida Room','Foyer','Great Room','Kitchen','Laundry-Utility Rm','Living Room','Primary Bedroom','Primary Bedroom #2','Morning Room','Office - Study','Rec Room'];
+
+// ======================== INIT ========================
+function init() {
+  // Build checkbox groups
+  for (const [id, items] of Object.entries(checkboxData)) {
+    const container = document.getElementById(id);
+    if (!container) continue;
+    container.innerHTML = items.map(item => {
+      const safeName = id + '_' + item.replace(/[^a-zA-Z0-9]/g, '_');
+      return `<label class="checkbox-item"><input type="checkbox" name="${safeName}" value="${item}"> ${item}</label>`;
+    }).join('');
+  }
+
+  // Build room table
+  const tbody = document.getElementById('roomTableBody');
+  tbody.innerHTML = roomTypes.map(room => {
+    const key = room.replace(/[^a-zA-Z0-9]/g, '_');
+    return `<tr>
+      <td><span class="room-label">${room}</span></td>
+      <td><input type="text" name="room_${key}_length" placeholder="ft.in" style="width:70px"></td>
+      <td><input type="text" name="room_${key}_width" placeholder="ft.in" style="width:70px"></td>
+      <td><input type="text" name="room_${key}_level" style="width:50px"></td>
+      <td><input type="text" name="room_${key}_desc" maxlength="50"></td>
+    </tr>`;
+  }).join('');
+
+  // Load saved data
+  loadFormData();
+
+  // Auto-save on change
+  document.addEventListener('input', debounce(saveFormData, 500));
+  document.addEventListener('change', debounce(saveFormData, 500));
+
+  updateProgress();
+
+  // Address lookup links
+  ['houseNumber','streetName','streetSuffix','county','zipCode','streetNameTax'].forEach(function(n) {
+    var el = document.querySelector('[name="' + n + '"]');
+    if (el) el.addEventListener('change', updateLookupLinks);
+  });
+
+  // Auto-open Zillow + auto-save listing when address fields are filled
+  var zillowAutoOpened = {};
+  var lastAutoSavedAddr = currentListingId ? getListingName() : '';
+  ['houseNumber','streetNameTax','streetName'].forEach(function(n) {
+    var el = document.querySelector('[name="' + n + '"]');
+    if (el) el.addEventListener('blur', function() {
+      var num = (document.querySelector('[name="houseNumber"]')?.value || '').trim();
+      var street = (document.querySelector('[name="streetNameTax"]')?.value || document.querySelector('[name="streetName"]')?.value || '').trim();
+      if (num && street) {
+        var key = num + ' ' + street;
+
+        // Auto-open Zillow (once per address)
+        if (!zillowAutoOpened[key]) {
+          zillowAutoOpened[key] = true;
+          var suffix = (document.querySelector('[name="streetSuffix"]')?.value || '').trim();
+          var county = (document.querySelector('[name="county"]')?.value || '').trim();
+          var state = (document.querySelector('[name="state"]')?.value || 'VA').trim();
+          var fullAddr = [num, street, suffix, county, state].filter(Boolean).join(' ');
+          window.open('https://www.zillow.com/homes/' + encodeURIComponent(fullAddr) + '_rb/', '_blank');
+        }
+
+        // Auto-save as new listing when address changes
+        var currentName = getListingName();
+        if (currentName && currentName !== 'Untitled Listing' && currentName !== lastAutoSavedAddr) {
+          lastAutoSavedAddr = currentName;
+          // If we already have a listing loaded with a different address, save as new
+          if (currentListingId) {
+            try {
+              var listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+              var existingName = listings[currentListingId] ? listings[currentListingId].name : '';
+              if (existingName && existingName !== currentName) {
+                // Different address = new listing
+                currentListingId = null;
+              }
+            } catch(e) {}
+          }
+          saveCurrentListing();
+          showToast('Auto-saved: ' + currentName);
+        }
+      }
+    });
+  });
+}
+
+// ======================== SECTION TOGGLE ========================
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+function expandAll() {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('collapsed'));
+}
+function collapseAll() {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('collapsed'));
+}
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ======================== SPEECH-TO-TEXT ========================
+let currentRecognition = null;
+let currentMicBtn = null;
+
+function startMic(btn, fieldName) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Speech recognition not supported in this browser');
+    return;
+  }
+
+  // Stop if already recording
+  if (currentMicBtn === btn) {
+    currentRecognition.stop();
+    btn.classList.remove('recording');
+    currentMicBtn = null;
+    return;
+  }
+
+  // Stop previous
+  if (currentRecognition) {
+    currentRecognition.stop();
+    if (currentMicBtn) currentMicBtn.classList.remove('recording');
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  const field = document.querySelector(`[name="${fieldName}"]`);
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    if (field) {
+      field.value = (field.value ? field.value + ' ' : '') + transcript;
+      field.dispatchEvent(new Event('input'));
+    }
+    btn.classList.remove('recording');
+    currentMicBtn = null;
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Speech error:', event.error);
+    btn.classList.remove('recording');
+    currentMicBtn = null;
+    if (event.error === 'not-allowed') {
+      showToast('Microphone access denied. Check browser settings.');
+    }
+  };
+
+  recognition.onend = () => {
+    btn.classList.remove('recording');
+    currentMicBtn = null;
+  };
+
+  btn.classList.add('recording');
+  currentMicBtn = btn;
+  currentRecognition = recognition;
+  recognition.start();
+}
+
+// ======================== PROPERTY DATA UPLOAD ========================
+let pdfJsLoaded = false;
+let tesseractLoaded = false;
+
+function openUploadModal() {
+  document.getElementById('uploadModal').classList.add('active');
+  document.getElementById('uploadStatus').className = 'upload-status';
+  document.getElementById('uploadStatus').textContent = '';
+  document.getElementById('filledSummary').innerHTML = '';
+  document.getElementById('uploadFileInput').value = '';
+  document.getElementById('uploadPasteText').value = '';
+  switchUploadTab('file');
+}
+function closeUploadModal() {
+  document.getElementById('uploadModal').classList.remove('active');
+}
+function switchUploadTab(tab) {
+  document.querySelectorAll('.upload-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.upload-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.upload-tab[onclick*="${tab}"]`).classList.add('active');
+  document.getElementById('upload-panel-' + tab).classList.add('active');
+  document.getElementById('parseTextBtn').style.display = tab === 'text' ? '' : 'none';
+}
+
+function setUploadStatus(type, msg) {
+  const el = document.getElementById('uploadStatus');
+  el.className = 'upload-status ' + type;
+  el.innerHTML = msg;
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function ensurePdfJs() {
+  if (pdfJsLoaded) return;
+  setUploadStatus('loading', 'Loading PDF reader...');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfJsLoaded = true;
+}
+
+async function ensureTesseract() {
+  if (tesseractLoaded) return;
+  setUploadStatus('loading', 'Loading image reader (first time may take a moment)...');
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  tesseractLoaded = true;
+}
+
+async function handleUploadFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  try {
+    let text = '';
+    if (ext === 'pdf') {
+      await ensurePdfJs();
+      setUploadStatus('loading', 'Extracting text from PDF...');
+      text = await extractPdfText(file);
+    } else if (['jpg','jpeg','png','heic','heif','webp','bmp','tiff','tif','gif'].includes(ext)) {
+      await ensureTesseract();
+      setUploadStatus('loading', 'Reading text from image (this may take 15-30 seconds)...');
+      text = await ocrImage(file);
+    } else {
+      setUploadStatus('error', 'Unsupported file type. Use PDF or image files.');
+      return;
+    }
+    if (!text || text.trim().length < 20) {
+      setUploadStatus('error', 'Could not extract enough text from this file. Try pasting the text manually.');
+      return;
+    }
+    const result = parsePropertyData(text);
+    showParseResults(result);
+  } catch (e) {
+    console.error('Upload error:', e);
+    setUploadStatus('error', 'Error processing file: ' + e.message);
+  }
+}
+
+async function extractPdfText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const lines = [];
+    let lastY = null;
+    let currentLine = '';
+    for (const item of content.items) {
+      if (lastY !== null && Math.abs(item.transform[5] - lastY) > 3) {
+        lines.push(currentLine.trim());
+        currentLine = '';
+      }
+      currentLine += (currentLine ? '  ' : '') + item.str;
+      lastY = item.transform[5];
+    }
+    if (currentLine.trim()) lines.push(currentLine.trim());
+    fullText += lines.join('\n') + '\n---PAGE---\n';
+  }
+  return fullText;
+}
+
+async function ocrImage(file) {
+  const worker = await Tesseract.createWorker('eng');
+  const { data: { text } } = await worker.recognize(file);
+  await worker.terminate();
+  return text;
+}
+
+function parseUploadedText() {
+  const text = document.getElementById('uploadPasteText').value;
+  if (!text.trim()) { setUploadStatus('error', 'Please paste some text first.'); return; }
+  const result = parsePropertyData(text);
+  showParseResults(result);
+}
+
+function showParseResults(result) {
+  if (result.filled === 0) {
+    setUploadStatus('error', 'No matching fields found. The text format may not be recognized.');
+    return;
+  }
+  setUploadStatus('success', `Filled <strong>${result.filled} fields</strong> and checked <strong>${result.checked} checkboxes</strong> from the uploaded data.`);
+  const summary = document.getElementById('filledSummary');
+  summary.innerHTML = result.details.map(d =>
+    `<div class="item"><span class="fname">${d.label}</span><span class="fval">${d.value}</span></div>`
+  ).join('');
+  saveFormData();
+  updateProgress();
+}
+
+// ======================== PROPERTY DATA PARSER ========================
+function preprocessPdfText(rawText) {
+  // PDF extraction often puts labels and values on separate lines.
+  // Join "Label:" lines with the value on the next line.
+  const lines = rawText.split('\n');
+  const result = [];
+  const skipHeaders = /^(Room|Dim|Lvl Desc|Bath Desc|FBath|HBath|Features|Square Feet|General Information|Listing Information|Showing Instructions|Agent\/Office|Owner Information|Fee Information|Mortgage|Tax Information|Assessment|Characteristics|Building Features|Location Information|Estimated Value|Sold\s*Information)/;
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trimEnd();
+    if (!line.trim()) { result.push(line); continue; }
+    const trimmed = line.trim();
+    if (trimmed.endsWith(':') && i + 1 < lines.length) {
+      const nextTrimmed = lines[i+1].trim();
+      if (nextTrimmed && !nextTrimmed.match(skipHeaders) && !nextTrimmed.endsWith(':')) {
+        line = trimmed + ' ' + nextTrimmed;
+        i++;
+        // Handle multi-line continuations like "Single Family" + "Residence"
+        if (i + 1 < lines.length) {
+          const nn = lines[i+1].trim();
+          if (nn && (nn === 'Residence' || nn.startsWith('(') || nn === 'least once)')) {
+            line += ' ' + nn; i++;
+          }
+        }
+      }
+    }
+    result.push(line);
+  }
+  return result.join('\n');
+}
+
+function parsePropertyData(rawText, collectMode = false) {
+  const text = preprocessPdfText(rawText);
+  const textLower = text.toLowerCase();
+  let filled = 0;
+  let checked = 0;
+  const details = [];
+  const fieldValues = {};     // NEW: collected values when collectMode=true
+  const checkboxValues = {};  // NEW: collected checkbox states when collectMode=true
+
+  function setField(name, value, label) {
+    if (!value || !value.toString().trim()) return false;
+    const cleanVal = value.toString().trim();
+    if (collectMode) {
+      fieldValues[name] = cleanVal;
+      filled++;
+      details.push({label: label||name, value: cleanVal});
+      return true;
+    }
+    const el = document.querySelector(`[name="${name}"]`);
+    if (!el) return false;
+    if (el.tagName === 'SELECT') {
+      const opts = Array.from(el.options);
+      const match = opts.find(o => o.value.toLowerCase() === cleanVal.toLowerCase()) ||
+                    opts.find(o => o.value.toLowerCase().includes(cleanVal.toLowerCase())) ||
+                    opts.find(o => cleanVal.toLowerCase().includes(o.value.toLowerCase()));
+      if (match) { el.value = match.value; filled++; details.push({label: label||name, value: match.value}); return true; }
+      return false;
+    }
+    el.value = cleanVal;
+    el.dispatchEvent(new Event('input'));
+    filled++;
+    details.push({label: label||name, value: cleanVal});
+    return true;
+  }
+
+  function setRadioField(name, value, label) {
+    if (!value) return false;
+    const cleanVal = value.toString().trim();
+    if (collectMode) {
+      fieldValues[name] = cleanVal;
+      filled++;
+      details.push({label: label||name, value: cleanVal});
+      return true;
+    }
+    const radios = document.querySelectorAll(`input[name="${name}"]`);
+    for (const r of radios) {
+      if (r.value.toLowerCase() === cleanVal.toLowerCase() || cleanVal.toLowerCase().includes(r.value.toLowerCase())) {
+        r.checked = true; filled++; details.push({label: label||name, value: r.value}); return true;
+      }
+    }
+    return false;
+  }
+
+  function checkCheckbox(groupId, value) {
+    const items = checkboxData[groupId] || [];
+    const valLower = value.toLowerCase().trim();
+    for (const item of items) {
+      if (item.toLowerCase() === valLower || valLower.includes(item.toLowerCase()) || item.toLowerCase().includes(valLower)) {
+        const safeName = groupId + '_' + item.replace(/[^a-zA-Z0-9]/g, '_');
+        if (collectMode) {
+          checkboxValues[safeName] = true;
+          if (!fieldValues[groupId]) fieldValues[groupId] = [];
+          fieldValues[groupId].push(item);
+          checked++;
+          details.push({label: groupId.replace('-checks',''), value: item});
+        } else {
+          const cb = document.querySelector(`[name="${safeName}"]`);
+          if (cb && !cb.checked) { cb.checked = true; checked++; details.push({label: groupId.replace('-checks',''), value: item}); }
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function checkMultipleCheckboxes(groupId, csvValue) {
+    if (!csvValue) return;
+    const parts = csvValue.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    for (const part of parts) { checkCheckbox(groupId, part); }
+  }
+
+  // --- Extract using regex patterns (handles "Label: Value" and "Label  Value" formats) ---
+  function extract(pattern, flags) {
+    const re = new RegExp(pattern, flags || 'i');
+    const m = text.match(re);
+    return m ? (m[1] || '').trim() : null;
+  }
+
+  // ========== ADDRESS PARSING ==========
+  // Try "Address: 1001 Butternut DR" format
+  let addr = extract('Address:\\s*(.+?)(?:\\n|$)');
+  if (addr) {
+    const addrParts = addr.match(/^(\d+)\s+(.+?)(?:\s+(Dr|Drive|St|Street|Ave|Avenue|Blvd|Boulevard|Ct|Court|Pl|Place|Ln|Lane|Way|Rd|Road|Cir|Circle|Ter|Terrace|Trl|Trail|Pike|Hwy|Highway))?$/i);
+    if (addrParts) {
+      setField('houseNumber', addrParts[1], 'House Number');
+      setField('streetNum', addrParts[1], 'Street #');
+      const streetWithSuffix = addrParts[2] + (addrParts[3] ? ' ' + addrParts[3] : '');
+      setField('streetNameTax', streetWithSuffix, 'Street Name (Tax)');
+      // Split street name and suffix for location section
+      const nameParts = streetWithSuffix.match(/^(.+?)\s+(Dr|Drive|St|Street|Ave|Avenue|Blvd|Boulevard|Ct|Court|Pl|Place|Ln|Lane|Way|Rd|Road|Cir|Circle|Ter|Terrace|Trl|Trail|Pike|Hwy|Highway)$/i);
+      if (nameParts) {
+        setField('streetName', nameParts[1], 'Street Name');
+        setField('streetSuffix', nameParts[2], 'Street Suffix');
+      } else {
+        setField('streetName', streetWithSuffix, 'Street Name');
+      }
+    }
+  }
+  // Also try header format "1001 Butternut Dr, Prince George, VA 23860-7659"
+  const headerAddr = text.match(/(\d+)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*)\s+(Dr|Drive|St|Street|Ave|Avenue|Blvd|Boulevard|Ct|Court|Pl|Place|Ln|Lane|Way|Rd|Road|Cir|Circle),\s*([A-Za-z\s]+),\s*VA\s*(\d{5})(?:-(\d{4}))?/i);
+  if (headerAddr && !addr) {
+    setField('houseNumber', headerAddr[1], 'House Number');
+    setField('streetNum', headerAddr[1], 'Street #');
+    setField('streetName', headerAddr[2], 'Street Name');
+    setField('streetSuffix', headerAddr[3], 'Street Suffix');
+    setField('streetNameTax', headerAddr[2] + ' ' + headerAddr[3], 'Street Name (Tax)');
+  }
+
+  // ========== CORE PROPERTY FIELDS ==========
+  const cnCty = extract('Cn\\/Cty:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (cnCty) { setField('county', cnCty, 'County'); setField('countyCity', cnCty, 'County/City'); }
+
+  const pid = extract('PID:\\s*([\\w\\-\\.]+)');
+  if (pid) { setField('pid', pid, 'PID'); setField('pidListing', pid, 'PID (Listing)'); }
+
+  const propType = extract('Type:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (propType) {
+    if (propType.toLowerCase().includes('single family')) setRadioField('propertyType', 'Single Family', 'Property Type');
+    else if (propType.toLowerCase().includes('townhouse')) setRadioField('propertyType', 'Townhouse', 'Property Type');
+    else if (propType.toLowerCase().includes('condo')) setRadioField('propertyType', 'Condo', 'Property Type');
+    else if (propType.toLowerCase().includes('cooperative')) setRadioField('propertyType', 'Cooperative', 'Property Type');
+  }
+
+  const areaVal = extract('Area:\\s*(\\d+)');
+  if (areaVal) setField('area', areaVal, 'Area');
+
+  const attached = extract('Attached:\\s*(Yes|No)', 'i');
+  if (attached) setField('attached', attached, 'Attached');
+
+  const listPrice = extract('List Price:\\s*\\$?([\\d,]+)');
+  if (listPrice) setField('listPrice', listPrice, 'List Price');
+
+  const delayedShow = extract('Delayed Show:\\s*(Yes|No)', 'i');
+  if (delayedShow) setField('delayedShow', delayedShow.charAt(0).toUpperCase(), 'Delayed Show');
+
+  const noShowUntil = extract('No Show Until:\\s*(\\d{2}\\/\\d{2}\\/\\d{4})');
+  if (noShowUntil) {
+    const parts = noShowUntil.split('/');
+    if (parts.length === 3) setField('noShowUntil', parts[2]+'-'+parts[0]+'-'+parts[1], 'No Show Until');
+  }
+
+  // ========== LOCATION ==========
+  const zip = extract('Zip:\\s*(\\d{5})(?:-(\\d{4}))?');
+  if (zip) {
+    setField('zipCode', zip, 'Zip Code');
+    const zip4 = text.match(/Zip:\s*\d{5}-(\d{4})/);
+    if (zip4) setField('zip4', zip4[1], 'Zip+4');
+  }
+
+  const po = extract('P\\.?O\\.?:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (po) setField('postOffice', po, 'Post Office');
+
+  setField('state', 'VA', 'State');
+
+  const newResale = extract('New\\/Resale:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (newResale) {
+    if (newResale.toLowerCase().includes('resale')) setRadioField('newResale', 'Resale', 'New/Resale');
+    else if (newResale.toLowerCase().includes('new')) setRadioField('newResale', 'New', 'New/Resale');
+  }
+
+  const subdiv = extract('Subdiv:\\s*(.+?)(?:\\s{2,}|\\n|$)') || extract('Subdivision:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (subdiv) setField('subdivision', subdiv, 'Subdivision');
+
+  const yrBlt = extract('Yr Blt:\\s*(\\d{4})') || extract('Year Built:\\s*(\\d{4})');
+  if (yrBlt) setField('yearBuilt', yrBlt, 'Year Built');
+
+  const yrBltDesc = extract('Yr Blt:\\s*\\d{4}\\/(.+?)(?:\\s{2,}|\\n|$)');
+  if (yrBltDesc) setField('yearBuiltDesc', yrBltDesc, 'Year Built Desc');
+
+  const rms = extract('Rm(?:n?s|ooms?):\\s*(\\d+)') || extract('Total Rooms:\\s*(\\d+)');
+  if (rms) setField('rooms', rms, 'Rooms');
+
+  const bdrms = extract('Bdrms:\\s*(\\d+)') || extract('Bedrooms:\\s*(\\d+)');
+  if (bdrms) setField('bedrooms', bdrms, 'Bedrooms');
+
+  const lvls = extract('Lvls:\\s*([\\d\\.]+)') || extract('Stories:\\s*([\\d\\.]+)');
+  if (lvls) setField('levels', lvls, 'Levels');
+
+  const lotVal = extract('\\bLot:\\s*(\\d+)');
+  if (lotVal) setField('lot', lotVal, 'Lot');
+
+  // Square footage
+  const aboveGrade = extract('Above Grade Finished Area\\s*([\\d,]+)') || extract('Above Gnd Sq Ft:\\s*([\\d,]+)') || extract('Building Sq Ft:\\s*([\\d,]+)');
+  if (aboveGrade) setField('aboveGradeFinSqf', aboveGrade.replace(/,/g,''), 'Above Grade Fin SQF');
+
+  // SqFt Source - check for various formats
+  const sqftSrc = extract('SqFt Source\\s*(.+?)(?:\\n|$)') || extract('Sq ?Ft Source:\\s*(.+?)(?:\\n|$)');
+  if (sqftSrc) {
+    const srcMap = {'per tax':'Per Tax','per appraiser':'Per Appraiser','per architect':'Per Architect','per builder':'Per Builder','per owner':'Per Owner','other':'Other'};
+    const match = srcMap[sqftSrc.toLowerCase().trim()];
+    if (match) setRadioField('sqftSource', match, 'SqFt Source');
+  } else if (textLower.includes('sqft source') && textLower.includes('per tax')) {
+    setRadioField('sqftSource', 'Per Tax', 'SqFt Source');
+  }
+
+  // Schools
+  const elmSchool = extract('Elm(?:entary)? School:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (elmSchool) setField('elementarySchool', elmSchool, 'Elementary School');
+
+  const midSchool = extract('Mid(?:dle)? School:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (midSchool) setField('middleSchool', midSchool, 'Middle School');
+
+  const highSchool = extract('High School:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (highSchool) setField('highSchool', highSchool, 'High School');
+
+  const directions = extract('Directions?:?\\s*(.+?)(?:\\n|$)');
+  if (directions) setField('directions', directions, 'Directions');
+
+  // ========== ROOM DATA ==========
+  // Room data in PDFs often spans multiple lines: "Room Name\nDim\nLvl Desc"
+  const roomNames = [
+    { name: 'Primary Bedroom', key: 'Primary_Bedroom' },
+    { name: 'Bedroom 2', key: 'Bedroom_2' },
+    { name: 'Bedroom 3', key: 'Bedroom_3' },
+    { name: 'Bedroom 4', key: 'Bedroom_4' },
+    { name: 'Bedroom 5', key: 'Bedroom_5' },
+    { name: 'Dining Room', key: 'Dining_Room' },
+    { name: 'Family Room', key: 'Family_Room' },
+    { name: 'Living Room', key: 'Living_Room' },
+    { name: 'Kitchen', key: 'Kitchen' },
+    { name: 'Great Room', key: 'Great_Room' },
+    { name: 'Foyer', key: 'Foyer' },
+    { name: 'Laundry-Utility Rm', key: 'Laundry_Utility_Rm' },
+    { name: 'Office - Study', key: 'Office___Study' },
+    { name: 'Rec Room', key: 'Rec_Room' },
+    { name: 'Florida Room', key: 'Florida_Room' },
+  ];
+  const textLines = text.split('\n').map(l => l.trim());
+  for (const room of roomNames) {
+    for (let li = 0; li < textLines.length; li++) {
+      // Match room on single line: "Bedroom 2  10.0 x 9.0  1 carpet"
+      const singleLine = new RegExp('^' + room.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(\\d+\\.?\\d*)\\s*x\\s*(\\d+\\.?\\d*)\\s+(\\d+)\\s*(.*?)$', 'i');
+      const slm = textLines[li].match(singleLine);
+      if (slm) {
+        setField('room_' + room.key + '_length', slm[1], room.name + ' Length');
+        setField('room_' + room.key + '_width', slm[2], room.name + ' Width');
+        setField('room_' + room.key + '_level', slm[3], room.name + ' Level');
+        if (slm[4]) setField('room_' + room.key + '_desc', slm[4], room.name + ' Desc');
+        break;
+      }
+      // Match room on separate lines: "Bedroom 2\n10.0 x 9.0\n1 carpet"
+      if (textLines[li] === room.name || textLines[li].startsWith(room.name + ' ')) {
+        // Check next line for dimensions or just level
+        if (li + 1 < textLines.length) {
+          const dimMatch = textLines[li + 1].match(/^(\d+\.?\d*)\s*x\s*(\d+\.?\d*)$/);
+          if (dimMatch) {
+            setField('room_' + room.key + '_length', dimMatch[1], room.name + ' Length');
+            setField('room_' + room.key + '_width', dimMatch[2], room.name + ' Width');
+            // Check line after for level/desc
+            if (li + 2 < textLines.length) {
+              const lvlMatch = textLines[li + 2].match(/^(\d+)\s*(.*?)$/);
+              if (lvlMatch) {
+                setField('room_' + room.key + '_level', lvlMatch[1], room.name + ' Level');
+                if (lvlMatch[2]) setField('room_' + room.key + '_desc', lvlMatch[2], room.name + ' Desc');
+              }
+            }
+            break;
+          }
+          // Just level, no dimensions (e.g., Kitchen  1)
+          const justLvl = textLines[li + 1].match(/^(\d+)\s*(.*?)$/);
+          if (justLvl && !textLines[li + 1].match(/^\d+\.\d+/)) {
+            setField('room_' + room.key + '_level', justLvl[1], room.name + ' Level');
+            if (justLvl[2]) setField('room_' + room.key + '_desc', justLvl[2], room.name + ' Desc');
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // ========== BATH DATA ==========
+  // Handle both single-line and multi-line bath data
+  // Single line: "Lvl 1: Tub & Shower  2  0" or multi-line: "Lvl 1:\nTub & Shower\n2\n0"
+  const bathLevels = [
+    { label: 'Bsmt', descField: 'bathDescBasement', fullField: 'fullBathBasement', halfField: 'halfBathBasement' },
+    { label: 'Lvl 1', descField: 'bathDescLevel1', fullField: 'fullBathLevel1', halfField: 'halfBathLevel1' },
+    { label: 'Lvl 2', descField: 'bathDescLevel2', fullField: 'fullBathLevel2', halfField: 'halfBathLevel2' },
+    { label: 'Lvl 3', descField: 'bathDescLevel3', fullField: 'fullBathLevel3', halfField: 'halfBathLevel3' },
+    { label: 'Lvl 4', descField: 'bathDescLevel4', fullField: 'fullBathLevel4', halfField: 'halfBathLevel4' },
+  ];
+  for (const bath of bathLevels) {
+    for (let li = 0; li < textLines.length; li++) {
+      // Single line: "Lvl 1: Tub & Shower  2  0"
+      const slBath = textLines[li].match(new RegExp(bath.label + ':\\s*(.+?)\\s+(\\d+)\\s+(\\d+)\\s*$', 'i'));
+      if (slBath) {
+        if (slBath[1] && slBath[1] !== '0') setField(bath.descField, slBath[1], bath.label + ' Bath Desc');
+        setField(bath.fullField, slBath[2], bath.label + ' Full Bath');
+        setField(bath.halfField, slBath[3], bath.label + ' Half Bath');
+        break;
+      }
+      // Multi-line: "Lvl 1:\nTub & Shower\n2\n0"
+      if (textLines[li].match(new RegExp('^' + bath.label + ':?$', 'i'))) {
+        if (li + 1 < textLines.length) {
+          const desc = textLines[li + 1];
+          if (desc && (desc.includes('Tub') || desc.includes('Shower') || desc.match(/^\d+$/))) {
+            if (!desc.match(/^\d+$/)) {
+              setField(bath.descField, desc, bath.label + ' Bath Desc');
+              if (li + 2 < textLines.length && textLines[li + 2].match(/^\d+$/)) {
+                setField(bath.fullField, textLines[li + 2], bath.label + ' Full Bath');
+                if (li + 3 < textLines.length && textLines[li + 3].match(/^\d+$/))
+                  setField(bath.halfField, textLines[li + 3], bath.label + ' Half Bath');
+              }
+            } else {
+              setField(bath.fullField, desc, bath.label + ' Full Bath');
+              if (li + 2 < textLines.length && textLines[li + 2].match(/^\d+$/))
+                setField(bath.halfField, textLines[li + 2], bath.label + ' Half Bath');
+            }
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  // ========== FEATURES (Checkbox matching) ==========
+  const featurePatterns = [
+    { label: 'Style:', group: 'style-checks' },
+    { label: 'Structure:', group: 'structure-checks' },
+    { label: 'Siding:', group: 'siding-checks' },
+    { label: 'Roof:', group: 'roof-checks' },
+    { label: 'Flooring:', group: 'flooring-checks' },
+    { label: 'Attic:', group: 'attic-checks' },
+    { label: 'Heating:', group: 'heating-checks' },
+    { label: 'Heat Fuel:', group: 'heatfuel-checks' },
+    { label: 'Cooling:', group: 'cooling-checks' },
+    { label: 'Water Heater:', group: 'waterheater-checks' },
+    { label: 'Interior:', group: 'interior-checks' },
+    { label: 'Exterior:', group: 'exterior-checks' },
+    { label: 'Water:', group: 'water-checks' },
+    { label: 'Sewer/Septic:', group: 'sewer-checks' },
+    { label: 'Porch:', group: 'porch-checks' },
+    { label: 'Wall Type:', group: 'walltype-checks' },
+    { label: 'Current Internet:', group: 'internet-checks' },
+    { label: 'Comm Amenities:', group: 'community-checks' },
+    { label: 'Appl/Equip:', group: 'appliance-checks' },
+    { label: 'Restrictions:', group: 'restrictions-checks' },
+    { label: 'Lot Desc:', group: 'lotdesc-checks' },
+  ];
+  for (const fp of featurePatterns) {
+    const regex = new RegExp(fp.label.replace(/[\/\\]/g, '[\\/\\\\]?') + '\\s*(.+?)(?:\\n|$)', 'i');
+    const m = text.match(regex);
+    if (m && m[1].trim()) {
+      checkMultipleCheckboxes(fp.group, m[1].trim());
+    }
+  }
+
+  // Parking (special: combined with Garage line)
+  const parking = extract('Parking:\\s*(.+?)(?:\\n|$)');
+  if (parking) checkMultipleCheckboxes('parking-checks', parking);
+
+  // Garage
+  const garage = extract('Garage:\\s*(.+?)(?:\\n|$)');
+  if (garage) {
+    if (garage.toLowerCase().includes('yes') || garage.match(/\d/)) {
+      setField('garageYN', 'Yes', 'Garage Y/N');
+      const garCars = garage.match(/(\d+)/);
+      if (garCars) setField('garageCars', garCars[1], 'Garage Cars');
+      // Parse garage features after the count
+      const garFeatures = garage.replace(/^Yes\/\d+\/?/, '').trim();
+      if (garFeatures) checkMultipleCheckboxes('garage-checks', garFeatures);
+    } else if (garage.toLowerCase().includes('no')) {
+      setField('garageYN', 'No', 'Garage Y/N');
+    }
+  }
+
+  // Basement
+  const basement = extract('Basement\\/Found:\\s*(.+?)(?:\\n|$)') || extract('Basement:\\s*(.+?)(?:\\n|$)');
+  if (basement) {
+    if (basement.toLowerCase() === 'no' || basement.toLowerCase() === 'none') {
+      setField('basementYN', 'No', 'Basement Y/N');
+    } else {
+      setField('basementYN', 'Yes', 'Basement Y/N');
+      checkMultipleCheckboxes('basement-checks', basement);
+    }
+  }
+
+  // Fenced
+  const fenced = extract('Fenced:\\s*(.+?)(?:\\n|$)');
+  if (fenced) {
+    if (fenced.toLowerCase() === 'no') setField('fencedYN', 'No', 'Fenced Y/N');
+    else { setField('fencedYN', 'Yes', 'Fenced Y/N'); checkMultipleCheckboxes('fenced-checks', fenced); }
+  }
+
+  // Pool
+  const pool = extract('Pool\\/Desc:\\s*(.+?)(?:\\n|$)') || extract('Pool:\\s*(.+?)(?:\\n|$)');
+  if (pool) {
+    if (pool.toLowerCase() === 'no' || pool.toLowerCase() === 'none') setField('poolYN', 'No', 'Pool Y/N');
+    else { setField('poolYN', 'Yes', 'Pool Y/N'); checkMultipleCheckboxes('pool-checks', pool); }
+  }
+
+  // Golf
+  const golf = extract('Golf Frontage:\\s*(Yes|No)', 'i');
+  if (golf) setRadioField('golfFrontage', golf, 'Golf Frontage');
+
+  // ========== GENERAL INFO ==========
+  const waterfront = extract('Waterfront:\\s*(Yes|No)', 'i');
+  if (waterfront) setField('waterfrontYN', waterfront, 'Waterfront Y/N');
+
+  const acres = extract('Acres:\\s*([\\d\\.]+)') || extract('Lot Acres:\\s*([\\d\\.]+)');
+  if (acres) setField('acres', acres, 'Acres');
+
+  const zoning = extract('Current Zoning:\\s*(.+?)(?:\\s{2,}|\\n|$)') || extract('Zoning:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (zoning) setField('currentZoning', zoning, 'Current Zoning');
+
+  const annualTaxes = extract('Annual Taxes:\\s*\\$?([\\d,]+)') || extract('Total Tax\\s*\\$?([\\d,]+)');
+  if (annualTaxes) setField('annualTaxes', annualTaxes.replace(/,/g,''), 'Annual Taxes');
+
+  const totalAssmt = extract('Total Ass(?:e|m)t:\\s*\\$?([\\d,]+)') || extract('Assessed Value - Total\\s*\\$?([\\d,]+)');
+  if (totalAssmt) setField('assdTotal', totalAssmt.replace(/,/g,''), 'Assd Total');
+
+  const assdLand = extract('Assessed Value - Land\\s*\\$?([\\d,]+)');
+  if (assdLand) setField('assdLand', assdLand.replace(/,/g,''), 'Assd Land');
+
+  const assdImprv = extract('Assessed Value - Improved\\s*\\$?([\\d,]+)');
+  if (assdImprv) setField('assdImprv', assdImprv.replace(/,/g,''), 'Assd Imprv');
+
+  const legal = extract('Legal:\\s*(.+?)(?:\\n|$)') || extract('Legal Description:\\s*(.+?)(?:\\n|$)');
+  if (legal) setField('legal', legal.substring(0, 75), 'Legal');
+
+  const minDeposit = extract('Minimum Deposit:\\s*\\$?([\\d,]+)');
+  if (minDeposit) setField('minimumDeposit', minDeposit.replace(/,/g,''), 'Minimum Deposit');
+
+  const preQual = extract('Pre Qual Letter:\\s*(Yes|No)', 'i');
+  if (preQual) setField('preQualLetter', preQual, 'Pre Qual Letter');
+
+  const leadDisc = extract('Lead Disclosure:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (leadDisc) setField('leadDisclosure', leadDisc, 'Lead Disclosure');
+
+  const investorCap = extract('Investor Rental Cap:\\s*(Yes|No)', 'i');
+  if (investorCap) setField('investorRentalCap', investorCap, 'Investor Rental Cap');
+
+  const homeWarranty = extract('Home Warranty:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (homeWarranty && homeWarranty.toLowerCase() !== 'none') setField('homeWarranty', homeWarranty, 'Home Warranty');
+
+  // ========== HOA/FEES ==========
+  const hoa = extract('HOA\\/Condo:\\s*(Yes|No)', 'i') || extract('HOA:\\s*(Yes|No)', 'i');
+  if (hoa) setField('hoaCondo', hoa, 'HOA/Condo');
+
+  const addlHoa = extract("Add(?:'?l|itional) HOA:\\s*(Yes|No)", 'i');
+  if (addlHoa) setField('addlHoa', addlHoa, "Add'l HOA");
+
+  const memberReqd = extract('Membership Reqd:\\s*(Yes|No)', 'i');
+  if (memberReqd) setField('membershipReqd', memberReqd, 'Membership Reqd');
+
+  // ========== OWNER INFO ==========
+  const owner = extract('Owner:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (owner) {
+    setField('ownerName', owner, 'Owner Name');
+    const nameParts = owner.split(/\s+/);
+    if (nameParts.length >= 2) {
+      setField('ownerLastName', nameParts[0], 'Owner Last Name');
+      setField('ownerFirstName', nameParts.slice(1).join(' '), 'Owner First Name');
+    }
+  }
+  // Tax tab owner names
+  const ownerName1 = extract('Owner Name:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (ownerName1) setField('ownerName', ownerName1, 'Owner Name');
+  const ownerName2 = extract('Owner Name 2:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (ownerName2) setField('ownerName2', ownerName2, 'Owner Name 2');
+
+  const occupant = extract('Occupant:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (occupant) setField('occupantName', occupant, 'Occupant Name');
+
+  const ownedBy = extract('Owned By:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (ownedBy) checkMultipleCheckboxes('ownedby-checks', ownedBy);
+
+  const possession = extract('Possession:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (possession) checkMultipleCheckboxes('possession-checks', possession);
+
+  // ========== SHOWING ==========
+  const lockbox = extract('Lockbox Type:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (lockbox) setField('lockboxType', lockbox, 'Lockbox Type');
+
+  const sentriSerial = extract('Sentri Serial LB #:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (sentriSerial) setField('sentrilockSerial', sentriSerial, 'Sentrilock Serial');
+
+  const supraSerial = extract('Supra Serial LB #:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (supraSerial) setField('supraSerial', supraSerial, 'Supra Serial');
+
+  // Showing Instructions - handle "Showing Instr 1: Accompany Show, Appt. Required" format
+  const showInstr1 = extract('Showing Instr 1:\\s*(.+?)(?:\\n|$)');
+  if (showInstr1) {
+    if (showInstr1.includes('Accompany')) setField('showingInstr1', 'Accompany Show', 'Showing Instr 1');
+    else if (showInstr1.includes('Appt')) setField('showingInstr1', 'Appt. Required', 'Showing Instr 1');
+  } else {
+    if (textLower.includes('accompany show')) setField('showingInstr1', 'Accompany Show', 'Showing Instr 1');
+    else if (textLower.includes('appt. required') || textLower.includes('appt required')) setField('showingInstr1', 'Appt. Required', 'Showing Instr 1');
+  }
+
+  // Showing Instr 2 checkboxes
+  const showInstr2 = extract('Showing Instr 2:\\s*(.+?)(?:\\n|$)');
+  if (showInstr2) checkMultipleCheckboxes('showinginstr2-checks', showInstr2);
+
+  const addlShowInstr = extract('Addl Show Instr:\\s*(.+?)(?:\\n|$)');
+  if (addlShowInstr) setField('addlShwInst', addlShowInstr, 'Addl Show Instr');
+
+  // List Type
+  const listType = extract('Type:\\s*(Exclusive Right|Exclusive Agency|MLS Only)', 'i');
+  if (listType) setField('listType', listType, 'List Type');
+
+  // Disclosure
+  const disclosure = extract('Disclosure:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (disclosure) setField('disclosures', disclosure, 'Disclosures');
+
+  // Owner/Agent and Agent Related
+  const ownerAgent = extract('Owner\\/Agent:\\s*(Yes|No)', 'i');
+  if (ownerAgent) setField('ownerAgent', ownerAgent, 'Owner/Agent');
+  const agtRelated = extract('Agt Related to Seller:\\s*(Yes|No)', 'i');
+  if (agtRelated) setField('agentRelatedSeller', agtRelated, 'Agent Related to Seller');
+
+  // ========== REMARKS ==========
+  const remarks = extract('Remarks:\\s*(.+?)(?=Agent Only|Agent Comments|\\n\\n|---PAGE---)', 'is');
+  if (remarks) setField('remarks', remarks.trim().substring(0, 2048), 'Remarks');
+
+  const agentComments = extract('Agent (?:Only )?Comments?:\\s*(.+?)(?=\\n\\n|---PAGE---|Mortgage)', 'is');
+  if (agentComments) setField('agentComments', agentComments.trim().substring(0, 1000), 'Agent Comments');
+
+  // ========== ADU ==========
+  const adu = extract('ADU\\/Desc:\\s*(.+?)(?:\\s{2,}|\\n|$)');
+  if (adu) {
+    if (adu.toLowerCase() === 'no' || adu.toLowerCase() === 'none' || !adu.trim()) {
+      setField('aduYN', 'No', 'ADU');
+    } else {
+      setField('aduYN', 'Yes', 'ADU');
+      setField('aduDesc', adu, 'ADU Desc');
+    }
+  }
+
+  // ========== PROPERTYDETAILS-SPECIFIC PATTERNS ==========
+  // "Bldg Area - Finished Sq Ft  1,486"
+  const bldgFinished = extract('Bldg Area - Finished Sq Ft\\s+([\\d,]+)');
+  if (bldgFinished && !fieldValues['aboveGradeFinSqf']) setField('aboveGradeFinSqf', bldgFinished.replace(/,/g,''), 'Above Grade Fin SQF');
+
+  const bldgTotal = extract('Bldg Area - Total Sq Ft\\s+([\\d,]+)');
+  if (bldgTotal) setField('totalSqFt', bldgTotal.replace(/,/g,''), 'Total SqFt');
+
+  const bldgAbove = extract('Bldg Area - Above Grade Sq Ft\\s+([\\d,]+)');
+  if (bldgAbove) setField('aboveGradeFinSqf', bldgAbove.replace(/,/g,''), 'Above Grade Fin SQF');
+
+  // "Interior Wall  DRYWALL" / "Exterior  Vinyl" from PropertyDetails
+  const intWall = extract('Interior Wall\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (intWall) checkCheckbox('walltype-checks', intWall);
+
+  const extSiding = extract('Exterior:\\s*(.+?)(?:\\s{2,}|\\n|$)') || extract('Exterior\\s+(.+?)(?:\\s{2,}|Floor|\\n)');
+  if (extSiding && !extSiding.match(/features/i)) checkMultipleCheckboxes('siding-checks', extSiding);
+
+  // "Roof Material  Composition Shingle"
+  const roofMat = extract('Roof Material\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (roofMat) checkMultipleCheckboxes('roof-checks', roofMat.replace(/Composition /i, ''));
+
+  // "Garage Type  Detached Garage" / "Garage Sq Ft  576" from PropertyDetails
+  const garageType = extract('Garage Type\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (garageType) {
+    if (!garageType.toLowerCase().includes('no garage')) {
+      setField('garageYN', 'Yes', 'Garage Y/N');
+      checkMultipleCheckboxes('garage-checks', garageType.replace(/ Garage/gi, ''));
+    }
+  }
+  const garageSqFt = extract('Garage Sq Ft\\s+([\\d,]+)');
+  // (Not a direct form field but useful context)
+
+  const garageCapacity = extract('Garage Capacity\\s+(?:MLS:\\s*)?([\\d]+)');
+  if (garageCapacity) setField('garageCars', garageCapacity, 'Garage Cars');
+
+  // "Lot Sq Ft  18,731" / "Lot Acres  0.43"
+  const lotSqFt = extract('Lot Sq Ft\\s+([\\d,]+)');
+  // (Not a direct field but can derive acres if needed)
+
+  // PropertyDetails Bedrooms: "Bedrooms  Tax: 4 MLS: 3" - prefer MLS value
+  const bdrmTaxMls = extract('Bedrooms\\s+Tax:\\s*\\d+\\s*MLS:\\s*(\\d+)');
+  if (bdrmTaxMls) setField('bedrooms', bdrmTaxMls, 'Bedrooms');
+
+  // "Baths - Full  2" / "Baths - Total  2"
+  const bathsFull = extract('Baths - Full:?\\s+(\\d+)') || extract('Baths - Full\\s+(\\d+)');
+  if (bathsFull && !fieldValues['fullBathLevel1']) setField('fullBathLevel1', bathsFull, 'Full Baths Lvl 1');
+
+  // "Heat Type  Heat Pump" / "Cooling Type  Yes"
+  const heatType = extract('Heat Type:?\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (heatType && heatType.toLowerCase() !== 'n/a') checkMultipleCheckboxes('heating-checks', heatType);
+
+  const coolType = extract('Cooling Type:?\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (coolType && coolType.toLowerCase() !== 'no' && coolType.toLowerCase() !== 'n/a' && coolType.toLowerCase() !== 'yes') {
+    checkMultipleCheckboxes('cooling-checks', coolType);
+  }
+
+  // "Floor Cover  Type Unknown" - from PropertyDetails
+  const floorCover = extract('Floor Cover:?\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (floorCover && !floorCover.toLowerCase().includes('unknown')) checkMultipleCheckboxes('flooring-checks', floorCover);
+
+  // "Porch Type  Open Porch" / "Porch  Open Porch" from PropertyDetails
+  const porchType = extract('Porch Type:?\\s+(.+?)(?:\\s{2,}|\\n|$)') || extract('Porch:?\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (porchType && porchType.match(/open|screened|covered|enclosed/i)) {
+    checkMultipleCheckboxes('porch-checks', porchType.replace(/ Porch/gi, ''));
+  }
+
+  // ========== RPR-SPECIFIC PATTERNS ==========
+  // "Parcel Number  05A(08)16-010-0"
+  const parcelNum = extract('Parcel Number\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (parcelNum && !fieldValues['pid']) setField('pid', parcelNum.replace(/[()]/g, ''), 'PID');
+
+  // RPR Schools: "North Elementary School" in schools section
+  if (!fieldValues['elementarySchool']) {
+    const rprElm = extract('(\\w+)\\s+Elementary School');
+    if (rprElm) setField('elementarySchool', rprElm, 'Elementary School');
+  }
+  if (!fieldValues['highSchool']) {
+    const rprHigh = extract('(\\w[\\w\\s]+?)\\s+High School');
+    if (rprHigh) setField('highSchool', rprHigh.trim(), 'High School');
+  }
+
+  // RPR Owner: "Owner Name (Public)  SCOTT C. ALMETER"
+  const rprOwner = extract('Owner Name \\(Public\\)\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (rprOwner && !fieldValues['ownerName']) {
+    const cleanOwner = rprOwner.split(/\s+/).map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+    setField('ownerName', cleanOwner, 'Owner Name');
+  }
+
+  // RPR "Construction  Wood" = structure
+  const construction = extract('Construction\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (construction) checkMultipleCheckboxes('structure-checks', construction);
+
+  // RPR "Foundation  Concrete Block"
+  const foundation = extract('Foundation\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  // (Not a direct checkbox but useful data)
+
+  // RPR "Exterior Walls  Vinyl siding"
+  const extWalls = extract('Exterior Walls:?\\s+(.+?)(?:\\s{2,}|\\n|$)');
+  if (extWalls) checkMultipleCheckboxes('siding-checks', extWalls.replace(/ siding/gi, ''));
+
+  // "Owner Occupied  Yes" / "Owner Occupied  O"
+  const ownerOccupied = extract('Owner Occupied:?\\s+(Yes|No|O|Y|N)', 'i');
+  if (ownerOccupied) {
+    const isOcc = ownerOccupied.toLowerCase().startsWith('y') || ownerOccupied === 'O';
+    setField('occupiedBy', isOcc ? 'Owner' : '', 'Occupied By');
+  }
+
+  // ========== TAX TAB FIELDS ==========
+  const taxYear = extract('Tax Year\\s*(\\d{4})');
+  if (taxYear) setField('taxYear', taxYear, 'Tax Year');
+  // Fallback: use most recent assessment year
+  if (!taxYear) {
+    const assessYear = extract('Assessment Year\\s*(\\d{4})');
+    if (assessYear) setField('taxYear', assessYear, 'Tax Year');
+  }
+
+  return { filled, checked, details, fieldValues, checkboxValues };
+}
+
+// ======================== PDF TYPE DETECTION ========================
+function detectPdfType(text) {
+  const scores = { PropertyDetails: 0, '360View': 0, RPR: 0 };
+
+  // PropertyDetails markers
+  if (/Property Details/i.test(text)) scores.PropertyDetails += 3;
+  if (/Courtesy of/i.test(text)) scores.PropertyDetails += 2;
+  if (/COMMUNITY INSIGHTS/i.test(text)) scores.PropertyDetails += 2;
+  if (/CHARACTERISTICS/i.test(text)) scores.PropertyDetails += 2;
+  if (/ASSESSMENT & TAX/i.test(text)) scores.PropertyDetails += 1;
+  if (/Median Home Value/i.test(text)) scores.PropertyDetails += 1;
+  if (/CoreLogic/i.test(text)) scores.PropertyDetails += 2;
+  if (/Standardized Test Rank/i.test(text)) scores.PropertyDetails += 1;
+
+  // 360 View markers
+  if (/360 Property View/i.test(text)) scores['360View'] += 5;
+  if (/Showing Instr/i.test(text)) scores['360View'] += 2;
+  if (/Agent\/Office/i.test(text)) scores['360View'] += 2;
+  if (/Remarks\/Disclaimer/i.test(text)) scores['360View'] += 1;
+  if (/Sold Information/i.test(text)) scores['360View'] += 1;
+  if (/Cn\/Cty:/i.test(text)) scores['360View'] += 2;
+  if (/Yr Blt:/i.test(text)) scores['360View'] += 2;
+  if (/Subdiv:/i.test(text)) scores['360View'] += 1;
+  if (/Bdrms:/i.test(text)) scores['360View'] += 1;
+
+  // RPR markers
+  if (/Realtors Property Resource/i.test(text)) scores.RPR += 5;
+  if (/narrpr\.com/i.test(text)) scores.RPR += 3;
+  if (/Property Facts/i.test(text)) scores.RPR += 2;
+  if (/Owner Facts/i.test(text)) scores.RPR += 2;
+  if (/Affiliated Services/i.test(text)) scores.RPR += 2;
+  if (/Additional Resources/i.test(text)) scores.RPR += 1;
+  if (/Listing History/i.test(text)) scores.RPR += 1;
+  if (/Public Record History/i.test(text)) scores.RPR += 1;
+
+  const best = Object.entries(scores).sort((a,b) => b[1] - a[1])[0];
+  const names = { PropertyDetails: 'Property Details (CoreLogic)', '360View': '360 Property View (MLS)', RPR: 'RPR (Realtors Property Resource)' };
+  return { type: best[0], confidence: Math.min(best[1] / 8, 1), name: names[best[0]] || best[0] };
+}
+
+function extractSourceDate(text, pdfType) {
+  let m;
+  if (pdfType === 'PropertyDetails') {
+    m = text.match(/Generated on:\s*(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+    if (m) return parseFlexDate(m[1]);
+  }
+  if (pdfType === '360View') {
+    // Bottom of 360 View: "02/10/2026  4:58:12 PM"
+    m = text.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s+\d{1,2}:\d{2}:\d{2}\s*[AP]M/);
+    if (m) return parseFlexDate(m[1]);
+  }
+  if (pdfType === 'RPR') {
+    // Header: "2/10/26, 5:03 PM"
+    m = text.match(/(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+\d{1,2}:\d{2}\s*[AP]M/);
+    if (m) return parseFlexDate(m[1]);
+  }
+  // Fallback: any date found
+  m = text.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+  if (m) return parseFlexDate(m[1]);
+  return new Date();
+}
+
+function parseFlexDate(str) {
+  const parts = str.split('/');
+  if (parts.length !== 3) return new Date();
+  let [mo, da, yr] = parts.map(Number);
+  if (yr < 100) yr += 2000;
+  return new Date(yr, mo - 1, da);
+}
+
+// ======================== MULTI-FILE UPLOAD ========================
+async function handleMultipleFiles(fileList) {
+  if (!fileList || fileList.length === 0) return;
+  const files = Array.from(fileList);
+
+  // Single file: use simple path (backward compat)
+  if (files.length === 1) {
+    await handleUploadFile(files[0]);
+    return;
+  }
+
+  // Multi-file: collect mode
+  const queueEl = document.getElementById('fileQueue');
+  if (queueEl) queueEl.innerHTML = '';
+
+  const uploads = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const ext = file.name.split('.').pop().toLowerCase();
+    updateFileQueue(files, i, 'processing');
+    setUploadStatus('loading', `Processing ${i+1} of ${files.length}: ${file.name}`);
+
+    try {
+      let text = '';
+      if (ext === 'pdf') {
+        await ensurePdfJs();
+        text = await extractPdfText(file);
+      } else if (['jpg','jpeg','png','heic','heif','webp','bmp','tiff','tif','gif'].includes(ext)) {
+        await ensureTesseract();
+        text = await ocrImage(file);
+      } else {
+        updateFileQueue(files, i, 'error', 'Unsupported type');
+        continue;
+      }
+
+      if (!text || text.trim().length < 20) {
+        updateFileQueue(files, i, 'error', 'No text extracted');
+        continue;
+      }
+
+      const typeInfo = detectPdfType(text);
+      const sourceDate = extractSourceDate(text, typeInfo.type);
+      const result = parsePropertyData(text, true); // collectMode = true
+
+      uploads.push({
+        fileName: file.name,
+        type: typeInfo.type,
+        typeName: typeInfo.name,
+        confidence: typeInfo.confidence,
+        date: sourceDate,
+        fieldValues: result.fieldValues,
+        checkboxValues: result.checkboxValues,
+        filled: result.filled,
+        checked: result.checked,
+        details: result.details
+      });
+
+      updateFileQueue(files, i, 'done', typeInfo.name + ' (' + Math.round(typeInfo.confidence*100) + '%)');
+
+    } catch(e) {
+      console.error('Error processing ' + file.name, e);
+      updateFileQueue(files, i, 'error', e.message);
+    }
+  }
+
+  if (uploads.length === 0) {
+    setUploadStatus('error', 'No data could be extracted from the uploaded files.');
+    return;
+  }
+
+  // Merge and apply
+  const mergeResult = mergeUploadResults(uploads);
+  applyMergedData(mergeResult);
+  showMergeResults(uploads, mergeResult);
+}
+
+function updateFileQueue(files, idx, status, detail) {
+  let queueEl = document.getElementById('fileQueue');
+  if (!queueEl) {
+    const zone = document.getElementById('uploadZone');
+    queueEl = document.createElement('div');
+    queueEl.id = 'fileQueue';
+    queueEl.className = 'file-queue';
+    zone.parentElement.appendChild(queueEl);
+  }
+  // Build/update list
+  if (status === 'processing' && idx === 0) {
+    queueEl.innerHTML = files.length > 1 ? Array.from(files).map((f, i) =>
+      `<div class="file-queue-item" id="fq-${i}"><span>${f.name}</span><span class="fq-status">waiting...</span></div>`
+    ).join('') : '';
+  }
+  const item = document.getElementById('fq-' + idx);
+  if (item) {
+    item.className = 'file-queue-item ' + status;
+    item.querySelector('.fq-status').textContent = detail || status;
+  }
+}
+
+// ======================== MERGE ENGINE ========================
+function mergeUploadResults(uploads) {
+  const merged = {};      // fieldName -> { value, source, date }
+  const conflicts = {};   // fieldName -> [{ source, value, date }]
+  const allCheckboxes = {}; // checkboxName -> true
+
+  // Sort uploads by date (oldest first so newest overwrites)
+  const sorted = [...uploads].sort((a, b) => (a.date || 0) - (b.date || 0));
+
+  for (const upload of sorted) {
+    const src = upload.typeName || upload.fileName;
+
+    // Process text/select/radio fields
+    for (const [field, value] of Object.entries(upload.fieldValues || {})) {
+      if (Array.isArray(value)) continue; // checkbox arrays handled separately
+      if (!value) continue;
+
+      if (merged[field]) {
+        // Field already has value - check for conflict
+        const existing = merged[field];
+        const existingNorm = (existing.value || '').toString().toLowerCase().trim();
+        const newNorm = (value || '').toString().toLowerCase().trim();
+
+        if (existingNorm !== newNorm && existingNorm && newNorm) {
+          // Conflict! Track it
+          if (!conflicts[field]) {
+            conflicts[field] = [{ source: existing.source, value: existing.value, date: existing.date }];
+          }
+          conflicts[field].push({ source: src, value: value, date: upload.date });
+        }
+        // Most recent wins (sorted order means later = newer)
+        merged[field] = { value, source: src, date: upload.date };
+      } else {
+        merged[field] = { value, source: src, date: upload.date };
+      }
+    }
+
+    // Process checkboxes (union of all sources)
+    for (const [cbName, val] of Object.entries(upload.checkboxValues || {})) {
+      if (val) allCheckboxes[cbName] = { source: src, date: upload.date };
+    }
+  }
+
+  return { merged, conflicts, checkboxes: allCheckboxes };
+}
+
+function applyMergedData(mergeResult) {
+  const { merged, conflicts, checkboxes } = mergeResult;
+  let filled = 0;
+
+  // Apply text/select/radio fields
+  for (const [fieldName, info] of Object.entries(merged)) {
+    if (Array.isArray(info.value)) continue;
+    const el = document.querySelector(`[name="${fieldName}"]`);
+    if (!el) continue;
+
+    const val = info.value.toString().trim();
+
+    if (el.type === 'radio') {
+      const radios = document.querySelectorAll(`input[name="${fieldName}"]`);
+      for (const r of radios) {
+        if (r.value.toLowerCase() === val.toLowerCase() || val.toLowerCase().includes(r.value.toLowerCase())) {
+          r.checked = true; filled++; break;
+        }
+      }
+    } else if (el.tagName === 'SELECT') {
+      const opts = Array.from(el.options);
+      const match = opts.find(o => o.value.toLowerCase() === val.toLowerCase()) ||
+                    opts.find(o => o.value.toLowerCase().includes(val.toLowerCase())) ||
+                    opts.find(o => val.toLowerCase().includes(o.value.toLowerCase()));
+      if (match) { el.value = match.value; filled++; }
+    } else {
+      el.value = val;
+      el.dispatchEvent(new Event('input'));
+      filled++;
+    }
+
+    // Mark source
+    el.dataset.source = info.source;
+
+    // Mark conflicts
+    if (conflicts[fieldName]) {
+      el.classList.add('conflict-field');
+      // Add conflict badge
+      const wrapper = el.closest('.field') || el.parentElement;
+      if (wrapper && !wrapper.querySelector('.conflict-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'conflict-badge';
+        badge.textContent = '!';
+        const tip = document.createElement('div');
+        tip.className = 'conflict-tip';
+        tip.innerHTML = conflicts[fieldName].map(c =>
+          `<div><strong>${c.source}:</strong> ${c.value}</div>`
+        ).join('');
+        badge.appendChild(tip);
+        wrapper.appendChild(badge);
+      }
+    }
+  }
+
+  // Apply checkboxes
+  for (const [cbName, info] of Object.entries(checkboxes)) {
+    const cb = document.querySelector(`[name="${cbName}"]`);
+    if (cb && !cb.checked) {
+      cb.checked = true;
+    }
+  }
+
+  saveFormData();
+  updateProgress();
+  return filled;
+}
+
+function showMergeResults(uploads, mergeResult) {
+  const { merged, conflicts } = mergeResult;
+  const totalFields = Object.keys(merged).length;
+  const totalConflicts = Object.keys(conflicts).length;
+
+  // Source summary
+  const sourceSummary = uploads.map(u =>
+    `<div class="item"><span class="fname">${u.fileName}</span><span class="fval">${u.typeName} - ${u.filled} fields, ${u.checked} checks</span></div>`
+  ).join('');
+
+  setUploadStatus('success',
+    `Merged data from <strong>${uploads.length} sources</strong>: <strong>${totalFields} fields</strong> filled.` +
+    (totalConflicts > 0 ? ` <span style="color:#dd6b20;font-weight:600">${totalConflicts} conflicts flagged.</span>` : '')
+  );
+
+  document.getElementById('filledSummary').innerHTML = sourceSummary;
+
+  // Conflict panel in modal
+  const conflictPanel = document.getElementById('conflictPanel');
+  const conflictList = document.getElementById('conflictList');
+
+  if (totalConflicts > 0) {
+    conflictList.innerHTML = Object.entries(conflicts).map(([field, sources]) => {
+      const el = document.querySelector(`[name="${field}"]`);
+      const label = el?.closest('.field')?.querySelector('label')?.textContent || field;
+      return `<div style="padding:4px 0;border-bottom:1px solid var(--border);">
+        <strong>${label}</strong>: ${sources.map(s => `<em>${s.source}</em>: "${s.value}"`).join(' vs ')}
+      </div>`;
+    }).join('');
+    conflictPanel.style.display = 'block';
+
+    // Also show banner in form
+    const banner = document.getElementById('conflictBanner');
+    const bannerList = document.getElementById('conflictBannerList');
+    if (banner) {
+      banner.style.display = 'block';
+      bannerList.innerHTML = Object.entries(conflicts).map(([field, sources]) => {
+        const el = document.querySelector(`[name="${field}"]`);
+        const label = el?.closest('.field')?.querySelector('label')?.textContent || field;
+        return `<div class="conflict-item" onclick="document.querySelector('[name=\\'${field}\\']')?.scrollIntoView({behavior:'smooth',block:'center'})">
+          <strong>${label}:</strong> ${sources.map(s => `${s.source}: "${s.value}"`).join(' | ')}
+        </div>`;
+      }).join('');
+    }
+  } else {
+    if (conflictPanel) conflictPanel.style.display = 'none';
+    const banner = document.getElementById('conflictBanner');
+    if (banner) banner.style.display = 'none';
+  }
+}
+
+// ======================== ADDRESS LOOKUP LINKS ========================
+const countyTaxUrls = {
+  'Chesterfield': 'https://realestate.chesterfield.gov/Search/SearchResults',
+  'Henrico': 'https://realestate.henrico.us/',
+  'Richmond': 'https://apps.richmondgov.com/applications/PropertySearch/',
+  'Prince George': 'https://propertyportal.princegeorgecountyva.gov/',
+  'Hanover': 'https://assessor.hanovercounty.gov/',
+  'Goochland': 'https://goochlandgis.com/',
+  'Powhatan': 'https://www.powhatanva.gov/354/Real-Estate-Assessment',
+  'New Kent': 'https://www.co.new-kent.va.us/300/Real-Estate-Assessments',
+  'Dinwiddie': 'https://www.dinwiddieva.us/181/Real-Estate',
+  'Colonial Heights': 'https://www.colonialheightsva.gov/179/Real-Estate',
+  'Hopewell': 'https://www.hopewellva.gov/196/Real-Estate-Assessment',
+  'Petersburg': 'https://www.petersburg-va.org/353/Real-Estate-Assessment'
+};
+
+function updateLookupLinks() {
+  const row = document.getElementById('addressLookupRow');
+  if (!row) return;
+
+  const num = (document.querySelector('[name="houseNumber"]')?.value || '').trim();
+  const street = (document.querySelector('[name="streetName"]')?.value || '').trim();
+  const suffix = (document.querySelector('[name="streetSuffix"]')?.value || '').trim();
+  const county = (document.querySelector('[name="county"]')?.value || '').trim();
+  const zip = (document.querySelector('[name="zipCode"]')?.value || '').trim();
+
+  if (!num && !street) { row.style.display = 'none'; return; }
+
+  const fullAddr = [num, street, suffix].filter(Boolean).join(' ');
+  const fullAddrWithCity = [fullAddr, county || '', 'VA', zip].filter(Boolean).join(' ');
+  const links = [];
+
+  if (county && countyTaxUrls[county]) {
+    links.push(`<a href="${countyTaxUrls[county]}" target="_blank">&#127970; ${county} Tax Records</a>`);
+  }
+
+  if (fullAddr) {
+    const zillowQuery = encodeURIComponent(fullAddrWithCity);
+    links.push(`<a href="https://www.zillow.com/homes/${zillowQuery}_rb/" target="_blank">&#128269; Zillow</a>`);
+    links.push(`<a href="https://www.narrpr.com/#/search?query=${encodeURIComponent(fullAddrWithCity)}" target="_blank">&#128202; RPR</a>`);
+  }
+
+  if (links.length > 0) {
+    row.innerHTML = links.join('');
+    row.style.display = 'flex';
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+// ======================== TRANSCRIPT PARSER ========================
+function openTranscript() {
+  document.getElementById('transcriptModal').classList.add('active');
+}
+function closeTranscript() {
+  document.getElementById('transcriptModal').classList.remove('active');
+}
+
+function parseTranscript() {
+  const text = document.getElementById('transcriptText').value.toLowerCase();
+  if (!text.trim()) { showToast('Please paste a transcript first'); return; }
+
+  const mappings = [
+    { patterns: ['county'], field: 'county' },
+    { patterns: ['parcel id', 'pid', 'parcel number'], field: 'pid' },
+    { patterns: ['owner first name', 'first name', 'owner first'], field: 'ownerFirstName' },
+    { patterns: ['owner last name', 'last name', 'owner last'], field: 'ownerLastName' },
+    { patterns: ['house number', 'street number', 'house num'], field: 'houseNumber' },
+    { patterns: ['street name'], field: 'streetName' },
+    { patterns: ['unit number', 'unit num', 'apt number'], field: 'unitNum' },
+    { patterns: ['list price', 'listing price', 'price'], field: 'listPrice' },
+    { patterns: ['zip code', 'zip'], field: 'zipCode' },
+    { patterns: ['post office', 'city'], field: 'postOffice' },
+    { patterns: ['subdivision'], field: 'subdivision' },
+    { patterns: ['neighborhood'], field: 'neighborhood' },
+    { patterns: ['year built'], field: 'yearBuilt' },
+    { patterns: ['above grade finished', 'finished square', 'square feet', 'square footage', 'sqft'], field: 'aboveGradeFinSqf' },
+    { patterns: ['bedrooms', 'beds', 'bedroom count'], field: 'bedrooms' },
+    { patterns: ['rooms', 'total rooms'], field: 'rooms' },
+    { patterns: ['levels', 'stories', 'floors'], field: 'levels' },
+    { patterns: ['lot size', 'lot'], field: 'lot' },
+    { patterns: ['elementary school', 'elementary'], field: 'elementarySchool' },
+    { patterns: ['middle school'], field: 'middleSchool' },
+    { patterns: ['high school'], field: 'highSchool' },
+    { patterns: ['tax year'], field: 'taxYear' },
+    { patterns: ['annual taxes', 'taxes'], field: 'annualTaxes' },
+    { patterns: ['acres', 'acreage'], field: 'acres' },
+    { patterns: ['zoning', 'current zoning'], field: 'currentZoning' },
+    { patterns: ['directions'], field: 'directions' },
+    { patterns: ['remarks', 'description', 'property description'], field: 'remarks' },
+    { patterns: ['hoa fee', 'association fee'], field: 'hoaFee' },
+  ];
+
+  let filled = 0;
+  for (const mapping of mappings) {
+    for (const pattern of mapping.patterns) {
+      // Match patterns like "county is henrico" or "county: henrico" or "county henrico"
+      const regex = new RegExp(pattern + '\\s*(?:is|:|,)?\\s*([^,\\.\\n]+)', 'i');
+      const match = text.match(regex);
+      if (match) {
+        const value = match[1].trim();
+        const field = document.querySelector(`[name="${mapping.field}"]`);
+        if (field && value) {
+          field.value = value.charAt(0).toUpperCase() + value.slice(1);
+          field.dispatchEvent(new Event('input'));
+          filled++;
+        }
+        break;
+      }
+    }
+  }
+
+  // Try to detect property type
+  if (text.includes('single family')) setRadio('propertyType', 'Single Family');
+  else if (text.includes('townhouse')) setRadio('propertyType', 'Townhouse');
+  else if (text.includes('condo')) setRadio('propertyType', 'Condo');
+
+  // Detect style
+  const styles = ['ranch','colonial','cape','contemporary','craftsman','victorian','tudor','split foyer','modern','farm house'];
+  for (const s of styles) {
+    if (text.includes(s)) {
+      const cb = document.querySelector(`[value="${s.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')}"]`);
+      if (cb) cb.checked = true;
+    }
+  }
+
+  // Detect new/resale
+  if (text.includes('new construction') || text.includes('never occupied')) setRadio('newResale', 'New');
+  else if (text.includes('resale')) setRadio('newResale', 'Resale');
+
+  closeTranscript();
+  saveFormData();
+  updateProgress();
+  showToast(`Filled ${filled} fields from transcript`);
+}
+
+function setRadio(name, value) {
+  const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (radio) radio.checked = true;
+}
+
+// ======================== FULL AUTO: Zillow -> Form -> MLS (One Button) ========================
+function fullAutoMLS() {
+  const num = (document.querySelector('[name="houseNumber"]')?.value || document.querySelector('[name="streetNum"]')?.value || '').trim();
+  const street = (document.querySelector('[name="streetNameTax"]')?.value || document.querySelector('[name="streetName"]')?.value || '').trim();
+  const suffix = (document.querySelector('[name="streetSuffix"]')?.value || '').trim();
+  const county = (document.querySelector('[name="county"]')?.value || document.querySelector('[name="countyCity"]')?.value || '').trim();
+  const zip = (document.querySelector('[name="zipCode"]')?.value || '').trim();
+  const state = (document.querySelector('[name="state"]')?.value || 'VA').trim();
+
+  const fullAddr = [num, street, suffix].filter(Boolean).join(' ');
+  const fullAddrWithCity = [fullAddr, county, state, zip].filter(Boolean).join(' ');
+  const listingName = getListingName();
+
+  if (!num && !street) {
+    alert('Please enter at least a house number and street name first.');
+    return;
+  }
+
+  const zillowUrl = 'https://www.zillow.com/homes/' + encodeURIComponent(fullAddrWithCity) + '_rb/';
+
+  // Get any data already in the form (from PDF uploads, manual entry, etc.)
+  const existingData = getFormData();
+  const cleanExisting = {};
+  for (const [key, val] of Object.entries(existingData)) {
+    if (val === false || val === '' || val === null || val === undefined) continue;
+    cleanExisting[key] = val;
+  }
+
+  const prompt = `You are running a full automation pipeline: extract property data from Zillow, fill a CVR 525 form, then enter everything into CVR MLS Matrix. Do all 3 phases in sequence.
+
+## CRITICAL SAFETY RULE
+**NEVER set the MLS listing status to Active.** Always leave it as "Incomplete". The agent must review every listing before activation.
+
+# ============================================================
+# PHASE 1: Extract data from Zillow
+# ============================================================
+
+## Step 1A: Identify tabs
+Use tabs_context_mcp to get all open tabs. Find:
+- The CVR 525 form tab (URL contains "ewalker732.github.io"). Save as CVR_TAB.
+- The MLS Matrix tab (URL contains "cvrmls.mlsmatrix.com"). Save as MLS_TAB.
+- A Zillow tab if one is already open. If not, create a new tab.
+
+IMPORTANT: The CVR 525 form MUST be at https://ewalker732.github.io/cvr525-form/ (NOT a local file:// path).
+
+## Step 1B: Go to Zillow
+Navigate to: ${zillowUrl}
+If that does not land on the correct property, go to https://www.zillow.com/ and search for: ${fullAddrWithCity}
+Click the matching property listing. Wait for full page load.
+
+## Step 1C: Extract ALL data
+Read the Zillow property page thoroughly. Use get_page_text and read_page. Scroll down to load all sections. Extract everything you can find:
+
+- Address (number, direction, street, suffix, city, state, zip)
+- Property type, year built, bedrooms, bathrooms (full/half), square footage, stories/levels, rooms
+- Lot size (acres), lot dimensions
+- Construction/exterior, roof, foundation, heating, cooling, garage, pool, basement, fireplace, flooring, appliances
+- Tax info (annual taxes, tax year, assessed land, assessed improvements)
+- Schools (elementary, middle, high)
+- Click "See more facts and features" or any expandable sections for additional data.
+
+# ============================================================
+# PHASE 2: Fill the CVR 525 form
+# ============================================================
+
+## Step 2A: Navigate to CVR 525
+Go to the CVR_TAB (https://ewalker732.github.io/cvr525-form/).
+
+## Step 2B: Fill form fields
+Use javascript_tool on CVR_TAB. Inject this function and call it for every field you have data for:
+
+\`\`\`javascript
+function fillField(name, value) {
+  if (!value) return;
+  var el = document.querySelector('[name="' + name + '"]');
+  if (!el) return;
+  if (el.type === 'checkbox') { el.checked = (value === true || value === 'true' || value === '1'); }
+  else if (el.type === 'radio') { document.querySelectorAll('[name="' + name + '"]').forEach(function(r) { if (r.value === value) r.checked = true; }); }
+  else { el.value = value; }
+  el.dispatchEvent(new Event('change', {bubbles: true}));
+  el.dispatchEvent(new Event('input', {bubbles: true}));
+}
+\`\`\`
+
+Fill these CVR 525 fields with Zillow data:
+houseNumber, streetDirection, streetName, streetNameTax, streetSuffix, county, state, zipCode, zip4, propertyType, yearBuilt, yearBuiltDesc(ACTUAL), bedrooms, rooms, levels, aboveGradeFinSqf, belowGradeFinSqf, aboveGradeUnfSqf, belowGradeUnfSqf, fullBathLevel1, halfBathLevel1, fullBathLevel2, halfBathLevel2, fullBathBasement, halfBathBasement, acres, lotDimensions, annualTaxes(numbers only no $ or commas), taxYear, assdLand, assdImprv, pid, currentZoning, elementarySchool, middleSchool, highSchool, ownerFirstName, ownerLastName, ownerName, subdivision, neighborhood, legal, garageYN(1/0), garageCars, basementYN(1/0), poolYN(1/0), streetNum(same as houseNumber)
+
+After filling, call: if (typeof saveFormData === 'function') saveFormData();
+
+## Step 2C: Read back the complete form
+After saving, execute on CVR_TAB: JSON.stringify(window.CVR525_DATA || getFormData())
+This gives you the COMPLETE form data including Zillow data + any data the user already entered. Save this as FORM_DATA for Phase 3.
+
+# ============================================================
+# PHASE 3: Fill MLS Matrix (all 10 tabs)
+# ============================================================
+
+## Step 3A: Go to MLS Matrix
+Navigate to MLS_TAB. If no Matrix tab exists, tell the user to log in at https://cvrmls.mlsmatrix.com first.
+If on the Input page, click "Add New" > "Residential" > "Start" (blank form).
+
+## Step 3B: Helper functions (inject on EVERY tab)
+\`\`\`javascript
+var r={filled:0,checked:0,errors:[]};function setVal(id,val){if(val===undefined||val===null||val==='')return;var el=document.getElementById(id);if(!el){r.errors.push(id+' not found');return;}if(el.tagName==='SELECT'){var found=false;for(var i=0;i<el.options.length;i++){if(el.options[i].value===String(val)||el.options[i].text===String(val)){el.selectedIndex=i;found=true;break;}}if(!found){r.errors.push(id+': no match for "'+val+'"');return;}}else{el.value=val;}el.dispatchEvent(new Event('change',{bubbles:true}));r.filled++;}function buildLabelMap(){var map={};document.querySelectorAll('input[type="checkbox"]').forEach(function(cb){var lbl=document.querySelector('label[for="'+cb.id+'"]');if(lbl)map[cb.id]=lbl.textContent.trim();});return map;}function findAndCheck(prefix,labelText,labelMap){var cbs=document.querySelectorAll('input[type="checkbox"][id^="'+prefix+'_"]');for(var i=0;i<cbs.length;i++){if(labelMap[cbs[i].id]===labelText){if(!cbs[i].checked)cbs[i].click();r.checked++;return;}}r.errors.push(prefix+': "'+labelText+'" not found');}
+\`\`\`
+
+## Step 3C: Tab navigation
+Navigate tabs via: __doPostBack('m_rpPageList$ctlXX$lbPageLink','')
+Tab IDs: Status=ctl00, Listing Info=ctl02, Room Info=ctl04, Bath Info=ctl06, Features=ctl08, General Info=ctl10, Remarks=ctl12, Fee Info=ctl14, Owner Info=ctl16, Showing Instructions=ctl20
+Wait 3-5 seconds after each postback.
+
+## Step 3D: Field mapping per tab
+Use FORM_DATA from Phase 2 to fill Matrix fields.
+
+### Listing Info (ctl02)
+**Set County/City FIRST (Input_29)** - triggers AJAX. Wait 3 sec.
+County values: PrinceGeorge, Chesterfield, Henrico, Richmond, Hanover, Goochland, Powhatan, NewKent, CharlesCity, Dinwiddie, ColonialHeights, Hopewell, Petersburg
+Fields: delayedShow=Input_32(Y=1,N=0), listPrice=Input_31(no commas), listDate=Input_160, propertyType=Input_849(SFR/CNDO/COOP/TOWN), attached=Input_850(Yes=1,No=0), noShowUntil=Input_33, expectedOnMkt=Input_782, pid=Input_99, area=Input_30(after AJAX), expireDate=Input_162, streetNum=Input_34, streetDirection=Input_35, streetName=Input_36, streetSuffix=Input_37, unitNum=Input_515, unitLevel=Input_771, zipCode=Input_635(after AJAX), zip4=Input_39, state=Input_40, newResale=Input_42(NVROC/RESAL), postOffice=Input_41, pud=Input_43, subdivision=Input_259, neighborhood=Input_236, yearBuilt=Input_44, yearBuiltDesc=Input_45(ACTUAL/APPROX/HISTOR/NEW/RENOV/TBBLT/UNDCON), rooms=Input_48, levels=Input_49, lot=Input_622, bedrooms=Input_47, elementarySchool=Input_51(after AJAX), middleSchool=Input_53, highSchool=Input_52, otherSchool=Input_54, directions=Input_55, aboveGradeFinSqf=Input_879, belowGradeFinSqf=Input_882, aboveGradeUnfSqf=Input_880, belowGradeUnfSqf=Input_883, sqftSource=Input_97(Per Tax=02), finSqftSourceDesc=Input_98
+
+### Room Info (ctl04)
+Repeating rows: _Input_144__REPEAT{N}_{fieldId}. IDs: 139=Type, 140=Len ft, 774=Len dec, 141=Wid ft, 775=Wid dec, 142=Level, 143=Desc. Types: MBDRM/BDRM2/BDRM3/BDRM4/BDRM5/DINRM/FAMRM/FLARM/FOYER/GRTRM/KTCH/LAUTRM/LIVRM/MORRM/OFCST/RECRM. REPEAT19=hidden template. Start REPEAT0.
+
+### Bath Info (ctl06)
+bathDescBasement=Input_57(S/T/TS), fullBathBasement=Input_61, halfBathBasement=Input_65, bathDescLevel1=Input_58, fullBathLevel1=Input_62, halfBathLevel1=Input_66, bathDescLevel2=Input_59, fullBathLevel2=Input_63, halfBathLevel2=Input_67, bathDescLevel3=Input_60, fullBathLevel3=Input_64, halfBathLevel3=Input_68. Skip Level 4 (auto-calc).
+
+### Features (ctl08)
+Checkboxes via buildLabelMap()+findAndCheck(prefix,label,map).
+Prefixes: style=Input_541, structure=Input_70, siding=Input_71, roof=Input_72, flooring=Input_73, attic=Input_241, parking=Input_519, exterior=Input_570, internet=Input_845, heating=Input_86, heatfuel=Input_87, cooling=Input_88, waterheater=Input_90, fireplace=Input_85, porch=Input_92, walltype=Input_254, water=Input_676, sewer=Input_670, garage=Input_539, fenced=Input_79, interior=Input_568, appliance=Input_81, community=Input_534, building=Input_569, restriction=Input_83, golfview=Input_721
+Non-checkbox: golfFrontage=Input_693(1/0), garageYN=Input_150(1/0), garageCars=Input_226, basementYN=Input_153(1/0), aduYN=Input_861(1/0), aduDesc=Input_862, poolYN=Input_245(1/0), internetDesc=Input_846
+
+### General Info (ctl10)
+waterfrontYN=Input_94(Y/N not 0/1!), acres=Input_95, bodyOfWater=Input_696, lotDimensions=Input_96, taxYear=Input_246, annualTaxes=Input_105, assdLand=Input_247, assdImprv=Input_248, legal=Input_100, investorRentalCap=Input_697(1/0), homeWarranty=Input_106, currentZoning=Input_253
+
+### Remarks (ctl12)
+remarks=Input_107(max 2048), agentComments=Input_108(max 1000)
+
+### Fee Info (ctl14)
+hoaCondo=Input_109(1/0), addlHoa=Input_719(1/0), membershipReqd=Input_112(1/0), hoaFee=Input_110, feePeriod=Input_113, managementFirm=Input_705, managementPhone=Input_706, addlFee=Input_115, addlFeeDesc=Input_117, hoaWebsite=Input_860
+
+### Owner Info (ctl16)
+ownerName=Input_118, ownerPhone=Input_122, ownerName2=Input_857, occupantName=Input_119, occupantPhone=Input_123, occupiedBy=Input_606, ownerAgent=Input_124(1/0), agentRelatedSeller=Input_707(1/0)
+Checkboxes: ownedby-checks->Input_120(Individuals=03,Corporate=01,Estate=02,Partnership=05,Relocation=06,REO=07,Other=04), possession-checks->Input_121(At Closing=01,Immediate=02,Leasehold Rights=03,Negotiable=04,Other=05,Tenant Rights=06)
+
+### Showing Instructions (ctl20)
+lockboxType=Input_333(Supra/Sentrilock/Both), supraSerial=Input_137, sentrilockSerial=Input_732, addlShwInst=Input_138(max 750)
+showinginstr1-checks->Input_722(Accompany Show=01,Appt. Required=02), showinginstr2=Input_136(LCA/LCLO/LCO/LCSS/LCT/LGD/LUOS)
+
+## EXECUTION SUMMARY
+1. Phase 1: Extract from Zillow
+2. Phase 2: Fill CVR 525 form at ewalker732.github.io
+3. Phase 3: Fill all MLS Matrix tabs (Listing Info through Showing Instructions)
+4. Report: total fields filled, checkboxes checked, any errors, what Zillow was missing
+5. Status MUST remain "Incomplete"`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#4267b2,#dd6b20);color:#fff;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:600;z-index:10000;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:fadeInOut 3s ease';
+    toast.textContent = '\u2713 Copied! Paste into Claude in Chrome to run full pipeline';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }).catch(err => {
+    const ta = document.createElement('textarea');
+    ta.value = prompt;
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;font-size:12px;padding:20px;background:#fff';
+    document.body.appendChild(ta);
+    ta.select();
+    alert('Auto-copy failed. Press Ctrl+A then Ctrl+C to copy manually.');
+  });
+}
+
+// ======================== FETCH PROPERTY DATA (Claude in Chrome + Zillow) ========================
+function fetchPropertyData() {
+  const num = (document.querySelector('[name="houseNumber"]')?.value || document.querySelector('[name="streetNum"]')?.value || '').trim();
+  const street = (document.querySelector('[name="streetNameTax"]')?.value || document.querySelector('[name="streetName"]')?.value || '').trim();
+  const suffix = (document.querySelector('[name="streetSuffix"]')?.value || '').trim();
+  const county = (document.querySelector('[name="county"]')?.value || document.querySelector('[name="countyCity"]')?.value || '').trim();
+  const zip = (document.querySelector('[name="zipCode"]')?.value || '').trim();
+  const state = (document.querySelector('[name="state"]')?.value || 'VA').trim();
+
+  const fullAddr = [num, street, suffix].filter(Boolean).join(' ');
+  const fullAddrWithCity = [fullAddr, county, state, zip].filter(Boolean).join(' ');
+
+  if (!num && !street) {
+    alert('Please enter at least a house number and street name first.');
+    return;
+  }
+
+  const zillowQuery = encodeURIComponent(fullAddrWithCity);
+  const zillowUrl = 'https://www.zillow.com/homes/' + zillowQuery + '_rb/';
+
+  const prompt = `You are extracting property data from Zillow and filling in a CVR 525 form. Follow these steps exactly.
+
+## STEP 1: Find the CVR 525 form tab
+Use tabs_context_mcp to get all open tabs. Find the tab with "ewalker732.github.io" in its URL. Save that tab ID as CVR_TAB. You will come back to it later.
+IMPORTANT: The form MUST be open at https://ewalker732.github.io/cvr525-form/ (NOT a local file:// path). If you cannot find this tab, open a new tab and navigate to https://ewalker732.github.io/cvr525-form/ first. Local file:// URLs will NOT work due to browser security restrictions.
+
+## STEP 2: Go to Zillow
+Open a new tab or find an existing Zillow tab. Navigate to: ${zillowUrl}
+
+If that URL does not land on the correct property page, go to https://www.zillow.com/ and search for: ${fullAddrWithCity}
+
+Click the matching property listing to open the full property detail page. Wait for it to load fully.
+
+## STEP 3: Extract ALL available data
+Read the Zillow property page thoroughly. Use get_page_text and read_page to extract every piece of data you can find. Scroll down the entire page to load all sections. Look for ALL of these:
+
+**Address & Location:**
+- Full street address (number, direction, street name, suffix)
+- City/County, State, ZIP
+
+**Property Details (usually in "Facts and Features" or "Home Facts"):**
+- Property type (Single Family, Condo, Townhouse, etc.)
+- Year built
+- Number of bedrooms
+- Number of full bathrooms, half bathrooms
+- Total finished square footage
+- Number of stories/levels
+- Lot size (acres and/or square feet)
+
+**Construction & Features (scroll to "Facts and Features", "Interior", "Exterior", "Building"):**
+- Construction type / exterior materials (Brick, Vinyl, Frame, etc.)
+- Roof type (Shingle, Metal, etc.)
+- Foundation type
+- Heating type and fuel
+- Cooling type
+- Garage (yes/no, number of cars, type)
+- Pool (yes/no)
+- Basement (yes/no, finished/unfinished)
+- Fireplace (yes/no)
+- Flooring types
+- Appliances included
+- Parking details
+
+**Tax Information (scroll to "Price and Tax History" or "Public Tax History"):**
+- Annual taxes amount
+- Tax year
+- Assessed land value
+- Assessed improvement value
+- Total assessed value
+
+**Schools (scroll to "Nearby Schools" section):**
+- Elementary school name
+- Middle school name
+- High school name
+
+**Also click on "See more facts and features" or any expandable sections to get additional data.**
+
+## STEP 4: Fill the CVR 525 form
+Navigate back to the CVR 525 tab (CVR_TAB from Step 1) at https://ewalker732.github.io/cvr525-form/. This is a live web page, NOT a local file. Use javascript_tool with that tab ID to fill in every field you found data for. Use this JavaScript pattern:
+
+\`\`\`javascript
+function fillField(name, value) {
+  if (!value) return;
+  var el = document.querySelector('[name="' + name + '"]');
+  if (!el) return;
+  if (el.type === 'checkbox') {
+    el.checked = (value === true || value === 'true' || value === '1');
+  } else if (el.type === 'radio') {
+    var radios = document.querySelectorAll('[name="' + name + '"]');
+    radios.forEach(function(r) { if (r.value === value) r.checked = true; });
+  } else {
+    el.value = value;
+  }
+  el.dispatchEvent(new Event('change', {bubbles: true}));
+  el.dispatchEvent(new Event('input', {bubbles: true}));
+}
+
+// Address fields
+fillField('houseNumber', '');       // House number
+fillField('streetDirection', '');    // N, S, E, W, NE, NW, SE, SW or blank
+fillField('streetName', '');         // Street name without suffix
+fillField('streetSuffix', '');       // St, Rd, Dr, Ln, Ave, Blvd, Ct, Cir, Way, Pl, Trl, Pkwy
+fillField('county', '');             // County or independent city name
+fillField('state', '');              // State abbreviation
+fillField('zipCode', '');            // 5-digit ZIP
+fillField('zip4', '');               // ZIP+4 if available
+
+// Property details
+fillField('propertyType', '');       // SFR, CNDO, COOP, TOWN
+fillField('yearBuilt', '');          // 4-digit year
+fillField('yearBuiltDesc', '');      // ACTUAL, APPROX, etc
+fillField('bedrooms', '');           // Number
+fillField('rooms', '');              // Total rooms
+fillField('levels', '');             // Number of levels/stories
+
+// Square footage
+fillField('aboveGradeFinSqf', '');   // Above grade finished sq ft
+fillField('belowGradeFinSqf', '');   // Below grade finished sq ft
+fillField('aboveGradeUnfSqf', '');   // Above grade unfinished sq ft
+fillField('belowGradeUnfSqf', '');   // Below grade unfinished sq ft
+
+// Bathrooms
+fillField('fullBathLevel1', '');     // Full baths on level 1
+fillField('halfBathLevel1', '');     // Half baths on level 1
+fillField('fullBathLevel2', '');     // Full baths on level 2
+fillField('halfBathLevel2', '');     // Half baths on level 2
+fillField('fullBathBasement', '');   // Full baths in basement
+fillField('halfBathBasement', '');   // Half baths in basement
+
+// Lot
+fillField('acres', '');              // Lot acres
+fillField('lotDimensions', '');      // Lot dimensions text
+
+// Tax info
+fillField('annualTaxes', '');        // Annual tax amount (numbers only, no $)
+fillField('taxYear', '');            // Tax year (4 digits)
+fillField('assdLand', '');           // Assessed land value (numbers only)
+fillField('assdImprv', '');          // Assessed improvements (numbers only)
+
+// Identification
+fillField('pid', '');                // Parcel ID / APN
+fillField('currentZoning', '');      // Zoning code
+
+// Schools
+fillField('elementarySchool', '');   // Elementary school name
+fillField('middleSchool', '');       // Middle school name
+fillField('highSchool', '');         // High school name
+
+// Owner
+fillField('ownerFirstName', '');     // Owner first name
+fillField('ownerLastName', '');      // Owner last name
+fillField('ownerName', '');          // Full owner name (for MLS)
+
+// Subdivision
+fillField('subdivision', '');        // Subdivision name
+fillField('neighborhood', '');       // Neighborhood name
+fillField('legal', '');              // Legal description
+
+// Features (set these based on what RPR shows)
+fillField('garageYN', '');           // 1 or 0
+fillField('garageCars', '');         // Number of garage spaces
+fillField('basementYN', '');         // 1 or 0
+fillField('poolYN', '');             // 1 or 0
+
+// Trigger auto-save after filling
+if (typeof saveFormData === 'function') saveFormData();
+'Form filled with Zillow data successfully';
+\`\`\`
+
+Fill in the values you extracted from Zillow. Remove any fillField lines where you have no data. For dollar amounts, strip the $ and commas (e.g., "245000" not "$245,000").
+
+## STEP 5: Report results
+Tell me:
+- How many fields you filled
+- What data Zillow did NOT have (so I know what to fill manually)
+- Any fields where the data seemed uncertain
+
+## IMPORTANT
+- Only fill fields where you have confident data from Zillow
+- Do NOT guess or make up values
+- Zillow is public and does not require login`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#4267b2;color:#fff;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:600;z-index:10000;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:fadeInOut 3s ease';
+    toast.textContent = '\u2713 Copied! Now paste into Claude in Chrome';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }).catch(err => {
+    const ta = document.createElement('textarea');
+    ta.value = prompt;
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;font-size:12px;padding:20px;background:#fff';
+    document.body.appendChild(ta);
+    ta.select();
+    alert('Auto-copy failed. Press Ctrl+A then Ctrl+C to copy manually. Then close this overlay by refreshing the page.');
+  });
+}
+
+// ======================== COPY FOR MLS ENTRY (Claude in Chrome) ========================
+function copyForMLS() {
+  const data = getFormData();
+  const listingName = getListingName();
+  const cleanData = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (val === false || val === '' || val === null || val === undefined) continue;
+    cleanData[key] = val;
+  }
+
+  const prompt = `You are automating MLS listing entry into CVR MLS Matrix. I have a CVR 525 form filled with property data. Please fill it into the Matrix Residential Input Form.
+
+## CRITICAL SAFETY RULE
+**NEVER set the listing status to Active.** Always leave it as "Incomplete". The agent must review every listing before activation.
+
+## SETUP
+You need the Matrix tab open at https://cvrmls.mlsmatrix.com logged in and on the Input page. Start a new listing: click "Add New" > "Residential" > "Start" (blank form).
+
+## PROPERTY DATA (from CVR 525 form: ${listingName})
+\`\`\`json
+${JSON.stringify(cleanData, null, 0)}
+\`\`\`
+
+## HELPER FUNCTIONS
+Use these on every Matrix tab. Inject them at the start of each fill script:
+\`\`\`javascript
+var r={filled:0,checked:0,errors:[]};function setVal(id,val){if(val===undefined||val===null||val==='')return;var el=document.getElementById(id);if(!el){r.errors.push(id+' not found');return;}if(el.tagName==='SELECT'){var found=false;for(var i=0;i<el.options.length;i++){if(el.options[i].value===String(val)||el.options[i].text===String(val)){el.selectedIndex=i;found=true;break;}}if(!found){r.errors.push(id+': no match for "'+val+'"');return;}}else{el.value=val;}el.dispatchEvent(new Event('change',{bubbles:true}));r.filled++;}function buildLabelMap(){var map={};document.querySelectorAll('input[type="checkbox"]').forEach(function(cb){var lbl=document.querySelector('label[for="'+cb.id+'"]');if(lbl)map[cb.id]=lbl.textContent.trim();});return map;}function findAndCheck(prefix,labelText,labelMap){var cbs=document.querySelectorAll('input[type="checkbox"][id^="'+prefix+'_"]');for(var i=0;i<cbs.length;i++){if(labelMap[cbs[i].id]===labelText){if(!cbs[i].checked)cbs[i].click();r.checked++;return;}}r.errors.push(prefix+': "'+labelText+'" not found');}
+\`\`\`
+
+## TAB NAVIGATION
+Navigate between Matrix tabs using: __doPostBack('m_rpPageList$ctlXX$lbPageLink','')
+Tab IDs: Status=ctl00, Listing Info=ctl02, Room Info=ctl04, Bath Info=ctl06, Features=ctl08, General Info=ctl10, Remarks=ctl12, Fee Info=ctl14, Owner Info=ctl16, Showing Instructions=ctl20
+After each postback, wait 3-5 seconds for page load.
+
+## FIELD MAPPING (CVR525 field -> Matrix element ID)
+### Tab: Listing Info (ctl02)
+**Set County/City FIRST (Input_29)** - triggers AJAX that populates Area, ZIP, Subdivision, Schools. Wait 3 sec after setting.
+County values: PrinceGeorge, Chesterfield, Henrico, Richmond, Hanover, Goochland, Powhatan, NewKent, CharlesCity, Dinwiddie, ColonialHeights, Hopewell, Petersburg
+Fields: delayedShow=Input_32(Y=1,N=0), listPrice=Input_31(remove commas), listDate=Input_160, propertyType=Input_849(SFR/CNDO/COOP/TOWN), attached=Input_850(Yes=1,No=0), noShowUntil=Input_33, expectedOnMkt=Input_782, pidListing or pid=Input_99, area=Input_30(after AJAX), expireDate=Input_162, streetNum=Input_34, streetDirection=Input_35, streetName=Input_36, streetSuffix=Input_37, unitNum=Input_515, unitLevel=Input_771, zipCode=Input_635(after AJAX), zip4=Input_39, state=Input_40, newResale=Input_42(NVROC/RESAL), postOffice=Input_41(value=name no spaces), pud=Input_43, subdivision=Input_259(value=display text), neighborhood=Input_236, yearBuilt=Input_44, yearBuiltDesc=Input_45(ACTUAL/APPROX/HISTOR/NEW/RENOV/TBBLT/UNDCON), rooms=Input_48, levels=Input_49, lot=Input_622, bedrooms=Input_47, elementarySchool=Input_51(after AJAX), middleSchool=Input_53, highSchool=Input_52(value=name no spaces), otherSchool=Input_54, directions=Input_55, aboveGradeFinSqf=Input_879, belowGradeFinSqf=Input_882, aboveGradeUnfSqf=Input_880, belowGradeUnfSqf=Input_883, sqftSource=Input_97(Per Tax=02,Per Appraiser=01,Per Builder=04,Per Owner=06,Per Architect=05,Other=03), finSqftSourceDesc=Input_98
+
+### Tab: Room Info (ctl04)
+Repeating rows: _Input_144__REPEAT{N}_{fieldId}
+Field IDs: 139=Room Type, 140=Length ft, 774=Length dec, 141=Width ft, 775=Width dec, 142=Level, 143=Description
+Room Types: MBDRM/BDRM2/BDRM3/BDRM4/BDRM5/DINRM/FAMRM/FLARM/FOYER/GRTRM/KTCH/LAUTRM/LIVRM/MORRM/OFCST/RECRM
+Levels: 1/2/3/4/B/L/M. REPEAT19 is hidden template. Start REPEAT0. Click "More" for additional rows via Subforms['s_144'].showAnotherRow().
+
+### Tab: Bath Info (ctl06)
+bathDescBasement=Input_57(S/T/TS), fullBathBasement=Input_61, halfBathBasement=Input_65, bathDescLevel1=Input_58, fullBathLevel1=Input_62, halfBathLevel1=Input_66, bathDescLevel2=Input_59, fullBathLevel2=Input_63, halfBathLevel2=Input_67, bathDescLevel3=Input_60, fullBathLevel3=Input_64, halfBathLevel3=Input_68. Do NOT fill Level 4 totals (auto-calculated).
+
+### Tab: Features (ctl08)
+~520 checkboxes. Use buildLabelMap() + findAndCheck(prefix, labelText, labelMap).
+Prefixes: style=Input_541, structure=Input_70, siding=Input_71, roof=Input_72, flooring=Input_73, attic=Input_241, parking=Input_519, exterior=Input_570, internet=Input_845, heating=Input_86, heatfuel=Input_87, cooling=Input_88, waterheater=Input_90, fireplace=Input_85, porch=Input_92, walltype=Input_254, water=Input_676, sewer=Input_670, garage=Input_539, fenced=Input_79, interior=Input_568, appliance=Input_81, community=Input_534, building=Input_569, restriction=Input_83, golfview=Input_721
+CVR525 checkbox data stored as arrays of label strings. Collect ALL related keys (e.g. parking-checks + parking-checks_Off + parking-checks_Paved all map to Input_519).
+Non-checkbox: golfFrontage=Input_693(1/0), garageYN=Input_150(1/0), garageCars=Input_226, basementYN=Input_153(1/0), aduYN=Input_861(1/0), aduDesc=Input_862, poolYN=Input_245(1/0), internetDesc=Input_846
+
+### Tab: General Info (ctl10)
+waterfrontYN=Input_94(Y/N not 0/1!), acres=Input_95, bodyOfWater=Input_696, lotDimensions=Input_96, taxYear=Input_246, annualTaxes=Input_105, assdLand=Input_247, assdImprv=Input_248, legal=Input_100, investorRentalCap=Input_697(1/0), homeWarranty=Input_106, currentZoning=Input_253
+
+### Tab: Remarks (ctl12)
+remarks=Input_107(max 2048), agentComments=Input_108(max 1000)
+
+### Tab: Fee Info (ctl14)
+hoaCondo=Input_109(1/0), addlHoa=Input_719(1/0), membershipReqd=Input_112(1/0), hoaFee=Input_110, feePeriod=Input_113, managementFirm=Input_705, managementPhone=Input_706, addlFee=Input_115, addlFeeDesc=Input_117, hoaWebsite=Input_860
+
+### Tab: Owner Info (ctl16)
+ownerName=Input_118, ownerPhone=Input_122, ownerName2=Input_857, occupantName=Input_119, occupantPhone=Input_123, occupiedBy=Input_606, ownerAgent=Input_124(1/0), agentRelatedSeller=Input_707(1/0)
+Checkboxes: ownedby-checks->Input_120(Individuals=03,Corporate=01,Estate=02,Partnership=05,Relocation=06,REO=07,Other=04), possession-checks->Input_121(At Closing=01,Immediate=02,Leasehold Rights=03,Negotiable=04,Other=05,Tenant Rights=06)
+
+### Tab: Showing Instructions (ctl20)
+lockboxType=Input_333(Supra/Sentrilock/Both), supraSerial=Input_137, sentrilockSerial=Input_732, addlShwInst=Input_138(max 750)
+showinginstr1-checks->Input_722(Accompany Show=01, Appt. Required=02)
+showinginstr2: Use select Input_136(LCA/LCLO/LCO/LCSS/LCT/LGD/LUOS)
+
+## EXECUTION FLOW
+1. For each tab (skip Status, go Listing Info through Showing Instructions):
+   a. Navigate to the tab via __doPostBack
+   b. Wait 3-5 seconds for page load
+   c. Inject helper functions + fill script via javascript_tool
+   d. Report results (filled, checked, errors)
+2. After all tabs, report summary: total filled, total checked, any errors
+3. Status MUST remain "Incomplete"`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#dd6b20;color:#fff;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:600;z-index:10000;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:fadeInOut 3s ease';
+    toast.textContent = '\u2713 Copied! Now paste into Claude in Chrome';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }).catch(err => {
+    const ta = document.createElement('textarea');
+    ta.value = prompt;
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;font-size:12px;padding:20px;background:#fff';
+    document.body.appendChild(ta);
+    ta.select();
+    alert('Auto-copy failed. Press Ctrl+A then Ctrl+C to copy manually. Then close this overlay by refreshing the page.');
+  });
+}
+
+// ======================== SAVE / LOAD (localStorage + Multi-Listing) ========================
+let currentListingId = null;
+
+function getFormData() {
+  const data = {};
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'checkbox') {
+      data[el.name] = el.checked;
+    } else if (el.type === 'radio') {
+      if (el.checked) data[el.name] = el.value;
+    } else {
+      if (el.value) data[el.name] = el.value;
+    }
+  });
+  return data;
+}
+
+function getListingName() {
+  const addr = document.querySelector('[name="houseNumber"]');
+  const street = document.querySelector('[name="streetNameTax"]') || document.querySelector('[name="streetName"]');
+  const city = document.querySelector('[name="countyCity"]') || document.querySelector('[name="county"]');
+  let name = '';
+  if (addr && addr.value) name += addr.value;
+  if (street && street.value) name += (name ? ' ' : '') + street.value;
+  if (city && city.value) name += (name ? ', ' : '') + city.value;
+  return name || 'Untitled Listing';
+}
+
+function saveFormData() {
+  const data = getFormData();
+  // Expose data globally for Claude in Chrome to read
+  window.CVR525_DATA = data;
+  window.CVR525_LISTING_NAME = getListingName();
+
+  // Save to localStorage (persistent across sessions)
+  try { localStorage.setItem('cvr525_current', JSON.stringify(data)); } catch(e) {}
+
+  // If we have a current listing, update it too
+  if (currentListingId) {
+    try {
+      const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+      if (listings[currentListingId]) {
+        listings[currentListingId].data = data;
+        listings[currentListingId].name = getListingName();
+        listings[currentListingId].updated = new Date().toISOString();
+        localStorage.setItem('cvr525_listings', JSON.stringify(listings));
+      }
+    } catch(e) {}
+    updateListingBar();
+  }
+  updateProgress();
+}
+
+function loadFormData() {
+  let data = null;
+  // Try localStorage first, then sessionStorage for backward compat
+  try { data = JSON.parse(localStorage.getItem('cvr525_current')); } catch(e) {}
+  if (!data) { try { data = JSON.parse(sessionStorage.getItem('cvr525_data')); } catch(e) {} }
+  if (!data) return;
+
+  applyFormData(data);
+  window.CVR525_DATA = data;
+  window.CVR525_LISTING_NAME = getListingName();
+
+  // Check if this matches a saved listing
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    const lastId = localStorage.getItem('cvr525_lastListingId');
+    if (lastId && listings[lastId]) {
+      currentListingId = lastId;
+      updateListingBar();
+    }
+  } catch(e) {}
+}
+
+function applyFormData(data) {
+  for (const [name, value] of Object.entries(data)) {
+    const el = document.querySelector(`[name="${name}"]`);
+    if (!el) continue;
+    if (el.type === 'checkbox') {
+      el.checked = value;
+    } else if (el.type === 'radio') {
+      const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+      if (radio) radio.checked = true;
+    } else {
+      el.value = value;
+    }
+  }
+}
+
+function clearForm() {
+  if (!confirm('Clear all form data? This cannot be undone.')) return;
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+    else el.value = '';
+  });
+  try { localStorage.removeItem('cvr525_current'); } catch(e) {}
+  try { sessionStorage.removeItem('cvr525_data'); } catch(e) {}
+  currentListingId = null;
+  try { localStorage.removeItem('cvr525_lastListingId'); } catch(e) {}
+  window.CVR525_DATA = {};
+  updateListingBar();
+  updateProgress();
+  showToast('Form cleared');
+}
+
+// ======================== MULTI-LISTING MANAGEMENT ========================
+function openListingsPanel() {
+  document.getElementById('listingsModal').classList.add('active');
+  renderListingsList();
+}
+function closeListingsPanel() {
+  document.getElementById('listingsModal').classList.remove('active');
+}
+
+function saveCurrentListing() {
+  const data = getFormData();
+  const name = getListingName();
+  const id = currentListingId || 'listing_' + Date.now();
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    listings[id] = {
+      name: name,
+      data: data,
+      created: listings[id] ? listings[id].created : new Date().toISOString(),
+      updated: new Date().toISOString()
+    };
+    localStorage.setItem('cvr525_listings', JSON.stringify(listings));
+    currentListingId = id;
+    localStorage.setItem('cvr525_lastListingId', id);
+    updateListingBar();
+    renderListingsList();
+    showToast('Listing saved: ' + name);
+  } catch(e) {
+    showToast('Error saving listing');
+  }
+}
+
+function loadListing(id) {
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    if (!listings[id]) return;
+    // Clear form first
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+      else el.value = '';
+    });
+    applyFormData(listings[id].data);
+    localStorage.setItem('cvr525_current', JSON.stringify(listings[id].data));
+    currentListingId = id;
+    localStorage.setItem('cvr525_lastListingId', id);
+    window.CVR525_DATA = listings[id].data;
+    updateListingBar();
+    updateProgress();
+    closeListingsPanel();
+    scrollToTop();
+    showToast('Loaded: ' + listings[id].name);
+  } catch(e) {
+    showToast('Error loading listing');
+  }
+}
+
+function deleteListing(id, evt) {
+  evt.stopPropagation();
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    const name = listings[id] ? listings[id].name : 'this listing';
+    if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
+    delete listings[id];
+    localStorage.setItem('cvr525_listings', JSON.stringify(listings));
+    if (currentListingId === id) {
+      currentListingId = null;
+      localStorage.removeItem('cvr525_lastListingId');
+      updateListingBar();
+    }
+    renderListingsList();
+    showToast('Deleted: ' + name);
+  } catch(e) {}
+}
+
+function exportListing(id, evt) {
+  evt.stopPropagation();
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    if (!listings[id]) return;
+    const exportData = { ...listings[id].data };
+    // Also format checkboxes as grouped arrays for cleaner output
+    const grouped = {};
+    for (const [key, val] of Object.entries(exportData)) {
+      if (val === true) {
+        const parts = key.split('_');
+        if (parts.length > 1 && key.includes('-checks_')) {
+          const group = key.substring(0, key.lastIndexOf('_'));
+          const cbEl = document.querySelector(`[name="${key}"]`);
+          if (cbEl) {
+            if (!grouped[group]) grouped[group] = [];
+            grouped[group].push(cbEl.value);
+            delete exportData[key];
+          }
+        }
+      } else if (val === false) {
+        delete exportData[key];
+      }
+    }
+    Object.assign(exportData, grouped);
+
+    const safeName = listings[id].name.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CVR525_${safeName}_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Exported: ' + listings[id].name);
+  } catch(e) {}
+}
+
+function importListingJSON() {
+  document.getElementById('importJsonInput').click();
+}
+
+function handleImportJSON(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      // Clear and apply
+      document.querySelectorAll('input, select, textarea').forEach(el => {
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+        else el.value = '';
+      });
+      applyFormData(data);
+      localStorage.setItem('cvr525_current', JSON.stringify(getFormData()));
+      currentListingId = null;
+      updateListingBar();
+      updateProgress();
+      saveFormData();
+      closeListingsPanel();
+      showToast('Imported from ' + file.name);
+    } catch(err) {
+      showToast('Invalid JSON file');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderListingsList() {
+  const container = document.getElementById('listingsList');
+  try {
+    const listings = JSON.parse(localStorage.getItem('cvr525_listings') || '{}');
+    const keys = Object.keys(listings).sort((a,b) => {
+      return new Date(listings[b].updated) - new Date(listings[a].updated);
+    });
+    if (keys.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:12px;text-align:center">No saved listings yet. Fill out the form and tap "Save Current as New Listing".</p>';
+      return;
+    }
+    container.innerHTML = keys.map(id => {
+      const l = listings[id];
+      const isActive = id === currentListingId;
+      const updated = new Date(l.updated).toLocaleDateString('en-US', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+      return `<div class="listing-card${isActive?' active':''}" onclick="loadListing('${id}')">
+        <div class="lc-info">
+          <div class="lc-title">${l.name}</div>
+          <div class="lc-meta">${isActive?'Currently loaded  ':''}Updated ${updated}</div>
+        </div>
+        <div class="lc-actions">
+          <button class="lc-btn" onclick="exportListing('${id}',event)" title="Export JSON">Export</button>
+          <button class="lc-btn del" onclick="deleteListing('${id}',event)" title="Delete">Del</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    container.innerHTML = '<p style="color:var(--accent)">Error reading saved listings</p>';
+  }
+}
+
+function updateListingBar() {
+  const bar = document.getElementById('currentListingBar');
+  if (currentListingId) {
+    const name = getListingName();
+    document.getElementById('currentListingName').textContent = name;
+    document.getElementById('currentListingSaved').textContent = 'Saved to browser';
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+// ======================== EXPORT ========================
+function exportJSON() {
+  const data = getFormData();
+  // Format checkboxes as grouped arrays
+  const exportData = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (val === true) {
+      if (key.includes('-checks_')) {
+        const group = key.substring(0, key.lastIndexOf('_'));
+        const cbEl = document.querySelector(`[name="${key}"]`);
+        if (cbEl) {
+          if (!exportData[group]) exportData[group] = [];
+          exportData[group].push(cbEl.value);
+        }
+      }
+    } else if (val !== false) {
+      exportData[key] = val;
+    }
+  }
+
+  const safeName = getListingName().replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `CVR525_${safeName}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON exported: ' + getListingName());
+}
+
+// ======================== PROGRESS ========================
+function updateProgress() {
+  const required = document.querySelectorAll('.field.required input, .field.required select, .field.required textarea');
+  let filled = 0;
+  let total = 0;
+  required.forEach(el => {
+    total++;
+    if (el.value && el.value !== '' && el.value !== '--') filled++;
+  });
+  // Also count checked radios for required fields
+  const requiredRadios = new Set();
+  document.querySelectorAll('.field.required .radio-group input[type="radio"]').forEach(r => {
+    requiredRadios.add(r.name);
+    if (r.checked) filled++;
+  });
+  total += requiredRadios.size;
+
+  const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = pct;
+}
+
+// ======================== UTILS ========================
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Init on load
+init();
+</script>
+</body>
+</html>
