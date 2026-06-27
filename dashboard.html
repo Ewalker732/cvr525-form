@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a365d">
+<title>Market Pullback Alerts</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2a5298;
+  --accent: #e53e3e;
+  --bg: #f7fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1a202c;
+  --text-muted: #718096;
+  --success: #38a169;
+  --warn: #dd6b20;
+  --buy: #2f855a;
+  --buy-bg: #f0fff4;
+  --hit: #c53030;
+  --hit-bg: #fff5f5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  padding-bottom: 60px;
+}
+.app-header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.app-header h1 { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+.app-header .subtitle { font-size: 12px; opacity: 0.85; }
+.header-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+.header-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+.header-btn:active { background: rgba(255,255,255,0.3); }
+.header-btn.on { background: rgba(56,161,105,0.45); border-color: rgba(56,161,105,0.7); }
+.updated { font-size: 11px; opacity: 0.8; margin-left: auto; text-align: right; }
+
+.wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+
+.big-picture {
+  background: linear-gradient(135deg, #fff7ed, #fffaf0);
+  border: 1px solid #fbd38d;
+  border-left: 4px solid var(--warn);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.big-picture h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--warn); margin-bottom: 8px; }
+.big-picture ul { margin: 0; padding-left: 18px; }
+.big-picture li { font-size: 13px; line-height: 1.5; margin-bottom: 3px; }
+
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 18px 2px 8px; font-weight: 700; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.card.alerting { border-color: var(--hit); box-shadow: 0 0 0 2px rgba(197,48,48,0.25); }
+.card-top { display: flex; align-items: flex-start; gap: 10px; }
+.tk { flex: 1; min-width: 0; }
+.tk .sym { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.tk .name { font-size: 12px; color: var(--text-muted); }
+.price-box { text-align: right; white-space: nowrap; }
+.price-box .price { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.price-box .price.manual { color: var(--primary-light); }
+.price-box .chg { font-size: 12px; font-weight: 600; }
+.chg.up { color: var(--success); }
+.chg.down { color: var(--accent); }
+.price-box .src { font-size: 10px; color: var(--text-muted); }
+
+.note { font-size: 13px; line-height: 1.45; color: #2d3748; margin: 10px 0 6px; }
+
+.levels { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.level {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 8px;
+  background: #f8fafc; border: 1px solid var(--border);
+}
+.level .lvl-label { font-size: 12px; font-weight: 700; color: var(--text-muted); min-width: 64px; }
+.level .lvl-cond { font-size: 12px; color: var(--text-muted); flex: 1; }
+.level input.lvl-price {
+  width: 92px; padding: 5px 8px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 13px; font-weight: 700; text-align: right;
+  font-variant-numeric: tabular-nums; background: white;
+}
+.level .badge {
+  font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+  text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap;
+}
+.badge.armed { background: #ebf8ff; color: #2b6cb0; }
+.badge.hit { background: var(--hit-bg); color: var(--hit); }
+.badge.watch { background: #faf5ff; color: #6b46c1; }
+.badge.off { background: #edf2f7; color: var(--text-muted); }
+
+.level.is-hit { background: var(--hit-bg); border-color: #feb2b2; }
+.level.is-buy { background: var(--buy-bg); border-color: #9ae6b4; }
+
+.manual-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.manual-row label { font-size: 12px; color: var(--text-muted); }
+.manual-row input {
+  width: 110px; padding: 6px 8px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 13px; text-align: right;
+}
+.manual-row button {
+  font-size: 12px; padding: 6px 10px; border: 1px solid var(--border);
+  background: white; border-radius: 6px; cursor: pointer; color: var(--text-muted);
+}
+
+.toast-stack { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 500; width: calc(100% - 32px); max-width: 480px; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--primary); color: white; padding: 12px 16px; border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25); font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 10px; animation: pop .25s ease;
+}
+.toast.alert { background: var(--hit); }
+.toast .x { margin-left: auto; cursor: pointer; opacity: 0.8; font-weight: 800; }
+@keyframes pop { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.foot { text-align: center; font-size: 11px; color: var(--text-muted); padding: 18px 16px 0; line-height: 1.5; }
+.spin { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>📉 Market Pullback Alerts</h1>
+  <div class="subtitle">Buy-the-dip watchlist &middot; support levels &amp; alerts</div>
+  <div class="header-actions">
+    <button class="header-btn" id="refreshBtn">🔄 Refresh</button>
+    <button class="header-btn" id="notifyBtn">🔔 Enable alerts</button>
+    <button class="header-btn" id="autoBtn">⏱ Auto: off</button>
+    <span class="updated" id="updated">Not yet updated</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="big-picture">
+    <h2>Big Picture</h2>
+    <ul>
+      <li>Market had a bloody week — expect more pullbacks (20–30% drops are normal).</li>
+      <li>Not a full bear market: these companies are making good money.</li>
+      <li>Get cash ready to buy dips on panic days. Have buy orders staged at the levels below.</li>
+      <li><strong>Wait for dips instead of chasing.</strong></li>
+    </ul>
+  </div>
+
+  <div id="cards"></div>
+
+  <div class="foot">
+    Live quotes are delayed and best-effort (free public source). If a price won't load, tap a card's
+    "set price" to enter it manually — alerts work the same either way. Levels are editable; your edits
+    and price targets are saved on this device.<br>
+    Educational watchlist tool, not financial advice.
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+// ============================ WATCHLIST DATA ============================
+// type: 'below'  -> alert/buy when price <= price (support / buy zone)
+//       'above'  -> alert when price >= price (breakout)
+//       'watch'  -> informational level, no auto buy-zone styling
+const WATCHLIST = [
+  { sym: 'PLTR', name: 'Palantir', stooq: 'pltr.us',
+    note: 'IA bought aggressively under $107.',
+    levels: [ { label: 'Buy zone', price: 107, type: 'below' } ] },
+
+  { sym: 'MSTR', name: 'MicroStrategy', stooq: 'mstr.us',
+    note: 'Level 5 and Level 4 are good buy zones.',
+    levels: [ { label: 'Level 5', price: 250, type: 'below' },
+              { label: 'Level 4', price: 222, type: 'below' } ] },
+
+  { sym: 'NVDA', name: 'Nvidia', stooq: 'nvda.us',
+    note: 'Right on the 200-day MA. Level 5 is a buy zone; can also wait to reclaim the 200-day.',
+    levels: [ { label: 'Level 5', price: 180, type: 'below' } ] },
+
+  { sym: 'AMD', name: 'Advanced Micro Devices', stooq: 'amd.us',
+    note: 'Only down ~8% so far. Level 5 looks interesting — might still drop a bit more.',
+    levels: [ { label: 'Level 5', price: 0, type: 'below' } ] },
+
+  { sym: 'AVGO', name: 'Broadcom', stooq: 'avgo.us',
+    note: 'Breaking below Level 5. Watch the 200-day MA and Level 4 for buys.',
+    levels: [ { label: 'Level 4', price: 300, type: 'below' } ] },
+
+  { sym: 'MU', name: 'Micron', stooq: 'mu.us',
+    note: 'Strong earnings. Buy below $1,000 at Level 5. Price targets are very high.',
+    levels: [ { label: 'Level 5', price: 1000, type: 'below' } ] },
+
+  { sym: 'ARM', name: 'Arm Holdings', stooq: 'arm.us',
+    note: 'Already below Level 5. Wait for Level 2 (lower support) before buying.',
+    levels: [ { label: 'Level 2', price: 0, type: 'below' } ] },
+
+  { sym: 'TSM', name: 'TSMC', stooq: 'tsm.us',
+    note: 'Level 5 is a solid buy area. 200-day MA rising to support.',
+    levels: [ { label: 'Level 5', price: 360, type: 'below' } ] },
+
+  { sym: 'ALAB', name: 'Astera Labs', stooq: 'alab.us',
+    note: 'Level 5 and Level 4 are good buy zones.',
+    levels: [ { label: 'Level 5', price: 330, type: 'below' },
+              { label: 'Level 4', price: 272, type: 'below' } ] },
+
+  { sym: 'GOOGL', name: 'Alphabet / Google', stooq: 'googl.us',
+    note: 'Trend turned down. Support at $313.',
+    levels: [ { label: 'Support', price: 313, type: 'below' } ] },
+
+  { sym: 'ASML', name: 'ASML', stooq: 'asml.us',
+    note: 'Good buying area under $1,500.',
+    levels: [ { label: 'Buy zone', price: 1500, type: 'below' } ] },
+
+  { sym: 'TSLA', name: 'Tesla', stooq: 'tsla.us',
+    note: 'Grinding lower. Needs to break ABOVE $420 (200-day) to turn bullish. Earnings ~1 month.',
+    levels: [ { label: '200-day', price: 420, type: 'above' } ] },
+
+  { sym: 'QQQ', name: 'Nasdaq 100 ETF', stooq: 'qqq.us',
+    note: 'Sitting on 50-day support but likely to break lower. Not buying yet — wait for deeper levels.',
+    levels: [ { label: 'Deeper buy', price: 0, type: 'below' } ] },
+
+  { sym: 'SPX', name: 'S&P 500 Index', stooq: '^spx',
+    note: 'Breaking below 50-day MA. Short-term bearish.',
+    levels: [ { label: 'Watch', price: 0, type: 'watch' } ] },
+
+  { sym: 'BTC', name: 'Bitcoin', stooq: 'btcusd',
+    note: 'Looking weak. ETFs not buying, Saylor in hot water. Magnet is $60K but looks to leak lower.',
+    levels: [ { label: 'Magnet', price: 60000, type: 'below' } ] },
+
+  { sym: 'SOL', name: 'Solana', stooq: 'solusd',
+    note: 'Crazy strong. Note: XMoney just launched and it is using Solana.',
+    levels: [ { label: 'Watch', price: 0, type: 'watch' } ] },
+
+  { sym: 'SPACEX', name: 'SpaceX (private)', stooq: null,
+    note: 'Private — no live quote. Support at $150, possible move to $135. Could be a buy if it drops further. Enter price manually.',
+    levels: [ { label: 'Support', price: 150, type: 'below' },
+              { label: 'Deeper', price: 135, type: 'below' } ] },
+];
+
+// ============================ STATE / STORAGE ============================
+const LS_LEVELS = 'mpa_levels_v1';
+const LS_MANUAL = 'mpa_manual_v1';
+const LS_AUTO   = 'mpa_auto_v1';
+const FIRED = {};               // crossing de-dupe: key -> true while condition still met
+const quotes = {};              // sym -> { price, change, pct, source }
+let autoTimer = null;
+
+function loadJSON(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch(e){ return def; } }
+function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+
+const savedLevels = loadJSON(LS_LEVELS, {});   // "SYM#i" -> price
+const manualPrices = loadJSON(LS_MANUAL, {});  // SYM -> price
+
+function levelKey(sym, i) { return sym + '#' + i; }
+function levelPrice(sym, i, fallback) {
+  const k = levelKey(sym, i);
+  return (k in savedLevels && savedLevels[k] !== null && savedLevels[k] !== '') ? Number(savedLevels[k]) : fallback;
+}
+
+// ============================ DATA FETCH ============================
+// Stooq CSV quote via allorigins CORS proxy. Free, delayed, best-effort.
+function stooqURL(symbol) {
+  return 'https://stooq.com/q/l/?s=' + encodeURIComponent(symbol) + '&f=sd2t2ohlcvp&h&e=csv';
+}
+function proxied(url) {
+  return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+}
+
+async function fetchQuote(item) {
+  if (!item.stooq) return null;
+  try {
+    const res = await fetch(proxied(stooqURL(item.stooq)), { cache: 'no-store' });
+    if (!res.ok) throw new Error('http ' + res.status);
+    const text = (await res.text()).trim();
+    const lines = text.split('\n');
+    if (lines.length < 2) throw new Error('no data');
+    // header: Symbol,Date,Time,Open,High,Low,Close,Volume
+    const cols = lines[1].split(',');
+    const open = parseFloat(cols[3]);
+    const close = parseFloat(cols[6]);
+    if (!isFinite(close) || close <= 0) throw new Error('N/D');
+    const change = isFinite(open) ? close - open : 0;
+    const pct = isFinite(open) && open > 0 ? (change / open) * 100 : 0;
+    return { price: close, change, pct, source: 'live' };
+  } catch (e) {
+    return null;
+  }
+}
+
+// ============================ ALERT EVALUATION ============================
+function evalLevel(item, i, lvl, price) {
+  // returns { state: 'hit'|'armed'|'watch'|'off', isBuy:bool }
+  const p = levelPrice(item.sym, i, lvl.price);
+  if (!p || lvl.type === 'watch') return { state: 'watch', price: p };
+  if (price == null) return { state: 'armed', price: p };
+  if (lvl.type === 'below') {
+    return { state: price <= p ? 'hit' : 'armed', price: p, isBuy: true };
+  } else { // above
+    return { state: price >= p ? 'hit' : 'armed', price: p };
+  }
+}
+
+function checkAlerts() {
+  const newHits = [];
+  WATCHLIST.forEach(item => {
+    const q = quotes[item.sym];
+    const price = q ? q.price : (manualPrices[item.sym] != null ? Number(manualPrices[item.sym]) : null);
+    if (price == null) return;
+    item.levels.forEach((lvl, i) => {
+      if (lvl.type === 'watch') return;
+      const p = levelPrice(item.sym, i, lvl.price);
+      if (!p) return;
+      const cond = lvl.type === 'below' ? price <= p : price >= p;
+      const key = levelKey(item.sym, i);
+      if (cond && !FIRED[key]) {
+        FIRED[key] = true;
+        const dir = lvl.type === 'below' ? 'dropped to/below' : 'broke above';
+        newHits.push({
+          item, lvl, price, p,
+          msg: `${item.sym} ${dir} ${lvl.label} ($${fmt(p)}) — now $${fmt(price)}`
+        });
+      } else if (!cond && FIRED[key]) {
+        FIRED[key] = false; // re-arm once it moves back out of the zone
+      }
+    });
+  });
+  newHits.forEach(h => fireAlert(h));
+}
+
+function fireAlert(h) {
+  toast(h.msg, true);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      const n = new Notification('🔔 ' + h.item.sym + ' alert', {
+        body: h.msg, tag: levelKey(h.item.sym, 0) + Date.now()
+      });
+      setTimeout(() => n.close(), 12000);
+    } catch (e) {}
+  }
+  beep();
+}
+
+// ============================ RENDER ============================
+function fmt(n) {
+  if (n == null || !isFinite(n)) return '—';
+  if (Math.abs(n) >= 1000) return Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function render() {
+  const root = document.getElementById('cards');
+  root.innerHTML = '';
+  WATCHLIST.forEach(item => {
+    const q = quotes[item.sym];
+    const manual = manualPrices[item.sym];
+    const price = q ? q.price : (manual != null ? Number(manual) : null);
+    const usingManual = !q && manual != null;
+
+    let alerting = false;
+    const levelsHtml = item.levels.map((lvl, i) => {
+      const ev = evalLevel(item, i, lvl, price);
+      if (ev.state === 'hit') alerting = true;
+      const badgeClass = ev.state === 'hit' ? 'hit' : ev.state === 'watch' ? 'watch' : (lvl.price === 0 && !(levelKey(item.sym,i) in savedLevels) ? 'off' : 'armed');
+      const badgeText = ev.state === 'hit' ? '🔔 HIT' : ev.state === 'watch' ? 'WATCH' : (ev.price ? 'ARMED' : 'SET PRICE');
+      const rowClass = ev.state === 'hit' ? 'is-hit' : (lvl.type === 'below' && ev.price ? 'is-buy' : '');
+      const cond = lvl.type === 'below' ? 'buy at / below' : lvl.type === 'above' ? 'break above' : 'monitor';
+      const k = levelKey(item.sym, i);
+      const val = (k in savedLevels) ? savedLevels[k] : (lvl.price || '');
+      return `<div class="level ${rowClass}">
+        <span class="lvl-label">${lvl.label}</span>
+        <span class="lvl-cond">${cond}</span>
+        <input class="lvl-price" type="number" inputmode="decimal" step="any"
+               data-sym="${item.sym}" data-i="${i}" value="${val}" placeholder="—">
+        <span class="badge ${badgeClass}">${badgeText}</span>
+      </div>`;
+    }).join('');
+
+    let chgHtml = '';
+    if (q) {
+      const cls = q.change >= 0 ? 'up' : 'down';
+      const sign = q.change >= 0 ? '+' : '';
+      chgHtml = `<div class="chg ${cls}">${sign}${fmt(q.change)} (${sign}${q.pct.toFixed(2)}%)</div>`;
+    }
+    const priceHtml = price != null
+      ? `<div class="price ${usingManual ? 'manual' : ''}">$${fmt(price)}</div>${chgHtml}<div class="src">${q ? 'live · delayed' : usingManual ? 'manual' : ''}</div>`
+      : `<div class="price" style="color:var(--text-muted)">—</div><div class="src">no quote</div>`;
+
+    const card = document.createElement('div');
+    card.className = 'card' + (alerting ? ' alerting' : '');
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="tk"><div class="sym">${item.sym}</div><div class="name">${item.name}</div></div>
+        <div class="price-box">${priceHtml}</div>
+      </div>
+      <div class="note">${item.note}</div>
+      <div class="levels">${levelsHtml}</div>
+      <div class="manual-row">
+        <label>Manual price</label>
+        <input type="number" inputmode="decimal" step="any" class="manual-input"
+               data-sym="${item.sym}" value="${manual != null ? manual : ''}" placeholder="enter">
+        <button class="manual-clear" data-sym="${item.sym}">clear</button>
+      </div>`;
+    root.appendChild(card);
+  });
+
+  // wire level price inputs
+  root.querySelectorAll('input.lvl-price').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const k = levelKey(inp.dataset.sym, inp.dataset.i);
+      if (inp.value === '') delete savedLevels[k]; else savedLevels[k] = Number(inp.value);
+      delete FIRED[k];
+      saveJSON(LS_LEVELS, savedLevels);
+      checkAlerts(); render();
+    });
+  });
+  // wire manual price inputs
+  root.querySelectorAll('input.manual-input').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const s = inp.dataset.sym;
+      if (inp.value === '') delete manualPrices[s]; else manualPrices[s] = Number(inp.value);
+      saveJSON(LS_MANUAL, manualPrices);
+      checkAlerts(); render();
+    });
+  });
+  root.querySelectorAll('.manual-clear').forEach(btn => {
+    btn.addEventListener('click', () => {
+      delete manualPrices[btn.dataset.sym];
+      saveJSON(LS_MANUAL, manualPrices); render();
+    });
+  });
+}
+
+// ============================ REFRESH ============================
+let refreshing = false;
+async function refresh() {
+  if (refreshing) return;
+  refreshing = true;
+  const btn = document.getElementById('refreshBtn');
+  btn.innerHTML = '<span class="spin">🔄</span> Loading';
+  const items = WATCHLIST.filter(i => i.stooq);
+  const results = await Promise.all(items.map(i => fetchQuote(i)));
+  results.forEach((r, idx) => {
+    if (r) quotes[items[idx].sym] = r; else delete quotes[items[idx].sym];
+  });
+  const any = Object.keys(quotes).length;
+  document.getElementById('updated').textContent =
+    (any ? '' : 'Quotes unavailable · ') + 'Updated ' + new Date().toLocaleTimeString();
+  refreshing = false;
+  btn.innerHTML = '🔄 Refresh';
+  checkAlerts();
+  render();
+}
+
+// ============================ AUTO REFRESH ============================
+function toggleAuto() {
+  const btn = document.getElementById('autoBtn');
+  if (autoTimer) {
+    clearInterval(autoTimer); autoTimer = null;
+    btn.textContent = '⏱ Auto: off'; btn.classList.remove('on');
+    saveJSON(LS_AUTO, false);
+  } else {
+    autoTimer = setInterval(refresh, 60000);
+    btn.textContent = '⏱ Auto: 60s'; btn.classList.add('on');
+    saveJSON(LS_AUTO, true);
+    refresh();
+  }
+}
+
+// ============================ NOTIFICATIONS ============================
+function setupNotifyBtn() {
+  const btn = document.getElementById('notifyBtn');
+  function sync() {
+    if (!('Notification' in window)) { btn.textContent = '🔕 Unsupported'; btn.disabled = true; return; }
+    if (Notification.permission === 'granted') { btn.textContent = '🔔 Alerts on'; btn.classList.add('on'); }
+    else if (Notification.permission === 'denied') { btn.textContent = '🔕 Blocked'; }
+    else { btn.textContent = '🔔 Enable alerts'; }
+  }
+  btn.addEventListener('click', () => {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(() => { sync(); toast('Alerts enabled. Keep this tab open.'); });
+    } else {
+      toast(Notification.permission === 'granted' ? 'Alerts already on.' : 'Alerts blocked in browser settings.');
+    }
+  });
+  sync();
+}
+
+// ============================ TOAST + SOUND ============================
+function toast(msg, isAlert) {
+  const stack = document.getElementById('toastStack');
+  const el = document.createElement('div');
+  el.className = 'toast' + (isAlert ? ' alert' : '');
+  el.innerHTML = `<span>${isAlert ? '🔔' : 'ℹ️'}</span><span>${msg}</span><span class="x">✕</span>`;
+  el.querySelector('.x').onclick = () => el.remove();
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), isAlert ? 9000 : 3500);
+}
+let audioCtx = null;
+function beep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + 0.5);
+  } catch (e) {}
+}
+
+// ============================ INIT ============================
+document.getElementById('refreshBtn').addEventListener('click', refresh);
+document.getElementById('autoBtn').addEventListener('click', toggleAuto);
+setupNotifyBtn();
+render();
+refresh().then(() => { if (loadJSON(LS_AUTO, false)) toggleAuto(); });
+</script>
+</body>
+</html>
